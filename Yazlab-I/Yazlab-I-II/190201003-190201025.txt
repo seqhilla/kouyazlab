@@ -1,0 +1,924 @@
+//yeni.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.IO;
+
+namespace SON
+{
+    internal class yeni
+    {
+        public volatile List<List<int>> tumSudokular;
+        public int ekmek = 0;
+        public int yazimSayisi = 1;
+        public int cozulen;
+        public List<long> arr;
+        public List<int> cozulenler;
+        public long baslangic, bitis;
+        public int kacinci = 0;
+        public yeni()
+        {
+            arr = new List<long>();
+            arr.Add(0);
+            cozulenler = new List<int>();
+            cozulenler.Add(0);
+            cozulen = 0;
+            //notlar 4 kapanınca 1-2-3 çözülüyor -_-  2 kapanırsa hepsi çözülüyor
+            tumSudokular = new List<List<int>>();
+            oku();
+            Thread thread0 = new Thread(sudoku0);
+            Thread thread1 = new Thread(sudoku1);
+            Thread thread2 = new Thread(sudoku2);
+            Thread thread3 = new Thread(sudoku3);
+            Thread thread4 = new Thread(sudoku4);
+            thread0.Start();
+            thread1.Start();
+            thread2.Start();
+            thread3.Start();
+            thread4.Start();
+            
+            while (true)
+            {
+                /*
+                if (!thread0.IsAlive && !thread1.IsAlive && !thread3.IsAlive && !thread4.IsAlive && kez == 0)
+                {
+                    thread2.Start();
+                    kez = 1;
+                }
+                */
+                if (!thread0.IsAlive && !thread1.IsAlive && !thread2.IsAlive && !thread3.IsAlive && !thread4.IsAlive)
+                {
+                    //yaz();
+                    //sureyeBakim();
+                    break;
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine();
+            yaz2();
+
+
+           // Console.WriteLine("\n\n çözülen=" + cozulen);
+
+            thread0.Join();
+            thread1.Join();
+            thread2.Join();
+            thread3.Join();
+            thread4.Join();
+            //Console.WriteLine("\n\n süre=");
+            //sureyeBakim();
+
+        }
+        public void sureyeBakim()
+        {
+            for (int i = 0; i < arr.Count; i++)
+            {
+                Console.WriteLine(arr[i]);
+            }
+        }
+        public void yaz2()
+        {
+            string dosyaYolu = @"yazılan.txt";
+            using (StreamWriter writer = new StreamWriter(dosyaYolu))
+            {
+                for (int i = 0; i < tumSudokular.Count; i++)
+                {
+                    for (int j = 0; j < tumSudokular[i].Count; j++)
+                    {
+                        writer.Write(tumSudokular[i][j] + " ");
+                    }
+                    writer.WriteLine();
+                }
+            }
+
+
+            string readText = File.ReadAllText(dosyaYolu);
+            Console.WriteLine(readText);
+
+        }
+        public void sudoku0()
+        {
+            solver(0);
+        }
+        public void sudoku1()
+        {
+            solver(1);
+            //Console.WriteLine("hadeee1");
+        }
+        public void sudoku2()
+        {
+            solver(2);
+            //Console.WriteLine("hadeee2");
+        }
+        public void sudoku3()
+        {
+            solver(3);
+            //Console.WriteLine("hadeee3");
+        }
+        public void sudoku4()
+        {
+            solver(4);
+            //Console.WriteLine("hadeee4");
+        }
+        public void solver(int hangisi)
+        {
+            if (hangisi == 0)
+            {
+                baslangic = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                recursiveMethod(0, 0, 0);
+            }
+            else if (hangisi == 1)
+            {
+                recursiveMethod(0, 12, 1);
+            }
+            else if (hangisi == 2)
+            {
+                recursiveMethod(6, 6, 2);
+            }
+            else if (hangisi == 3)
+            {
+                recursiveMethod(12, 0, 3);
+            }
+            else if (hangisi == 4)
+            {
+                recursiveMethod(12, 12, 4);
+            }
+        }
+
+        //dosyaları okuyup 21x21 lik bir listeye atamma:
+        public void oku()
+        {
+            string dosyaYolu = @"sudoku.txt";
+            List<string> allLines = new List<string>(File.ReadAllLines(dosyaYolu));
+            //IEnumerable<string> allLinesIE = File.ReadLines(dosyaYolu);
+            //List<string> allLines = allLinesIE.ToList();
+            for (int i = 0; i < 21; i++)
+            {
+                List<int> tmp = new List<int>();
+                for (int j = 0; j < 21; j++)
+                {
+
+                    if (i < 6)// yukarı
+                    {
+                        //1.sudoku
+                        if (j < 9)
+                        {
+                            if (allLines[i][j] == '*')
+                            {
+                                tmp.Add(0);
+                                //sudokular[0][i][j] = 0;
+                            }
+                            else if (Char.IsDigit(allLines[i][j]))
+                            {
+                                tmp.Add(allLines[i][j] - '0');
+                                //sudokular[0,i]
+                            }
+                        }
+                        if (j >= 9 && j < 12)
+                        {
+                            tmp.Add(0);
+                        }
+                        if (j >= 12)
+                        {
+                            if (allLines[i][j - 3] == '*')
+                            {
+                                tmp.Add(0);
+                                //sudokular[0][i][j] = 0;
+                            }
+                            else if (Char.IsDigit(allLines[i][j - 3]))
+                            {
+                                tmp.Add(allLines[i][j - 3] - '0');
+                                //sudokular[0,i]
+                            }
+                        }
+                    }
+                    else if (i >= 6 && i < 9)// üst şişkin
+                    {
+                        if (allLines[i][j] == '*')
+                        {
+                            tmp.Add(0);
+                        }
+                        else if (Char.IsDigit(allLines[i][j]))
+                        {
+                            tmp.Add(allLines[i][j] - '0');
+                        }
+                    }
+                    else if (i >= 9 && i < 12)// orta ince
+                    {
+                        if (j < 6)
+                        {
+                            tmp.Add(0);
+                        }
+                        if (j >= 6 && j < 15)
+                        {
+                            if (allLines[i][j - 6] == '*')
+                            {
+                                tmp.Add(0);
+                            }
+                            else if (Char.IsDigit(allLines[i][j - 6]))
+                            {
+                                tmp.Add(allLines[i][j - 6] - '0');
+                            }
+
+                        }
+                        if (j >= 15)
+                        {
+                            tmp.Add(0);
+                        }
+
+                    }
+                    else if (i >= 12 && i < 15)// aşağı şişkin
+                    {
+                        if (allLines[i][j] == '*')
+                        {
+                            tmp.Add(0);
+                        }
+                        else if (Char.IsDigit(allLines[i][j]))
+                        {
+                            tmp.Add(allLines[i][j] - '0');
+                        }
+                    }
+                    else if (i >= 15)// aşağ son
+                    {
+
+                        if (j < 9)
+                        {
+                            if (allLines[i][j] == '*')
+                            {
+                                tmp.Add(0);
+                            }
+                            else if (Char.IsDigit(allLines[i][j]))
+                            {
+                                tmp.Add(allLines[i][j] - '0');
+                            }
+                        }
+                        if (j >= 9 && j < 12)
+                        {
+                            tmp.Add(0);
+                        }
+                        if (j >= 12)
+                        {
+                            if (allLines[i][j - 3] == '*')
+                            {
+                                tmp.Add(0);
+                            }
+                            else if (Char.IsDigit(allLines[i][j - 3]))
+                            {
+                                tmp.Add(allLines[i][j - 3] - '0');
+                            }
+                        }
+                    }
+                }
+                tumSudokular.Add(new List<int>(tmp));
+            }
+        }
+
+        public void yaz()
+        {
+            for (int i = 0; i < 21; i++)
+            {
+                for (int j = 0; j < 21; j++)
+                {
+                    Console.Write(tumSudokular[i][j] + " ");
+                }
+                Console.WriteLine();
+            }
+        }
+
+        /*
+        public bool kesisenKontrol(int row, int column, int num, int satir, int sutun)
+        {
+            if (satir == 0 && sutun == 0)
+            {
+                for (int i = 0; i < 9; i++)
+                {
+                    if (tumSudokular[row][i + sutun] == num)
+                        return false;
+                }
+
+            }
+            return true;
+        }
+        */
+        public bool checkRow(int row, int column, int num, int sutun)
+        {
+
+            for (int i = 0; i < 9; i++)
+            {
+                if (tumSudokular[row][i + sutun] == num)
+                    return false;
+            }
+            return true;
+        }
+        public bool checkColumn(int row, int column, int num, int satir)
+        {
+            for (int i = 0; i < 9; i++)
+            {
+                if (tumSudokular[i + satir][column] == num)
+                    return false;
+            }
+            return true;
+        }
+        public bool checkBox(int row, int column, int num)
+        {
+            /*
+            int rowDiv = row / 3;
+            int columnDiv = column / 3;
+            */
+            int sqrt = 3;//(int)Math.Sqrt(9);
+            int rowDiv = row - (row % sqrt);
+            int columnDiv = column - (column % sqrt);
+            for (int i = rowDiv; i < rowDiv + sqrt; i++)
+            {
+                for (int j = columnDiv; j < columnDiv + sqrt; j++)
+                {
+                    //Console.WriteLine(i + ", " + j);
+                    if (tumSudokular[i][j] == num)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public bool recursiveMethod(int satir, int sutun, int numara)
+        {
+
+            // ilk bölüm boş olan hücreyi bulmak için
+            int row = -1, column = -1;
+            bool bitti = true;
+            for (int i = 0; i < 9; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    if (tumSudokular[i + satir][j + sutun] == 0)
+                    {
+                        row = i + satir;
+                        column = j + sutun;
+                        bitti = false;
+                        break;
+                    }
+                }
+                if (!bitti)
+                {
+                    break;
+                }
+
+            }
+            //bu çok önemli kaç saat kaybettim bunu koymazsan sudokuyu bulsan bile backtrack atıyor
+            if (bitti)
+            {
+                //Console.WriteLine(" bitti");
+                return true;
+            }
+            //ikinci bölüm boş olan hücreye uygun rakam ekleniyor
+            for (int i = 1; i <= 9; i++)
+            {
+                //if (numara == 2 && row < 9 && column < 9 || numara == 2 && row < 9 && column > 11 || numara == 2 && row > 11 && column < 9 || numara == 2 && row > 11 && column > 11) //2. karşılaştırma 0. ile  -6 -6 *
+                //{
+                //    continue;
+                //}
+                if (checkBox(row, column, i) && checkColumn(row, column, i, satir) && checkRow(row, column, i, sutun)) //  bos olunca
+                {
+                    if (numara == 2 && row < 9 && column < 9) //2. karşılaştırma 0. ile -6 + 6 * 
+                    {
+                        if (checkBox(row - 6, column - 6, i) && checkColumn(row - 6, column - 6, i, 0) && checkRow(row - 6, column - 6, i, 0))
+                        {
+
+                            tumSudokular[row][column] = i;
+                            cozulen++;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                cozulen--;
+                                tumSudokular[row][column] = 0;
+                            }
+                            bitis = DateTimeOffset.Now.ToUnixTimeMilliseconds() - baslangic;
+                            //if (bitis % 10 == 0)
+                            //{
+                            Console.WriteLine(bitis);
+                            arr.Add(bitis);
+                            cozulenler.Add(cozulen);
+                            kacinci++;
+                            //}
+                        }
+                    }
+                    else if (numara == 2 && row < 9 && column > 11) //2. karşılaştırma 1. ile -6 + 6 * 
+                    {
+                        if (checkBox(row - 6, column + 6, i) && checkColumn(row - 6, column + 6, i, 0) && checkRow(row - 6, column + 6, i, 12))
+                        {
+
+                            tumSudokular[row][column] = i;
+                            cozulen++;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                cozulen--;
+                                tumSudokular[row][column] = 0;
+                            }
+                            bitis = DateTimeOffset.Now.ToUnixTimeMilliseconds() - baslangic;
+                            //if (bitis % 10 >= 0)
+                            //{
+                            Console.WriteLine(bitis);
+                            cozulenler.Add(cozulen);
+                            arr.Add(bitis);
+                            kacinci++;
+                            //}
+
+                        }
+                    }
+                    else if (numara == 2 && row > 11 && column < 9) //2. karşılaştırma 3. ile +6 -6 geri dön n
+                    {
+                        if (checkBox(row + 6, column - 6, i) && checkColumn(row + 6, column - 6, i, 12) && checkRow(row + 6, column - 6, i, 0))
+                        {
+                            cozulen++;
+                            tumSudokular[row][column - 12] = i;
+                            if (recursiveMethod(12, 0, 3))
+                            {
+
+                                return true;
+                            }
+                            else
+                            {
+                                cozulen--;
+                                tumSudokular[row][column] = 0;
+                            }
+                            bitis = DateTimeOffset.Now.ToUnixTimeMilliseconds() - baslangic;
+                            //if (bitis % 10 >= 0)
+                            //{
+                            Console.WriteLine(bitis);
+                            cozulenler.Add(cozulen);
+                            arr.Add(bitis);
+                            kacinci++;
+                            //}
+
+                        }
+                    }
+                    else if (numara == 2 && row > 11 && column > 11) //2. karşılaştırma 4. ile + 6 + 6 
+                    {
+                        if (checkBox(row + 6, column + 6, i) && checkColumn(row + 6, column + 6, i, 12) && checkRow(row + 6, column + 6, i, 12))
+                        {
+
+                            tumSudokular[row + 12][column] = i;
+                            cozulen++;
+                            if (recursiveMethod(12, 12, 4))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                cozulen--;
+                                tumSudokular[row][column] = 0;
+                            }
+                            bitis = DateTimeOffset.Now.ToUnixTimeMilliseconds() - baslangic;
+                            //if (bitis % 10 >= 0)
+                            //{
+                            Console.WriteLine(bitis);
+                            cozulenler.Add(cozulen);
+                            arr.Add(bitis);
+                            kacinci++;
+                            //}
+
+                        }
+                    }
+                    /*
+                    //if (ekmek == 100)
+                    //{
+                    Console.WriteLine(yazimSayisi + ". kez yazıyorum izle");
+                    yaz();
+                    Console.WriteLine("\n\n");
+                    //ekmek = 0;
+                    yazimSayisi++;
+                    //}
+                    //else ekmek++;
+                    // 0. ile 2. nin kesişimi
+                    if (numara == 0 && row > 5 && column > 5)
+                    {
+
+                        if (checkBox(row + 6, column + 6, i) && checkColumn(row + 6, column + 6, i, 6) && checkRow(row + 6, column + 6, i, 6))
+                        {
+                            tumSudokular[row][column] = i;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                tumSudokular[row][column] = 0;
+                            }
+                        }
+                    }
+                    // 1. ile 2. nin kesişimi
+                    else if (numara == 1 && row > 5 && column < 15)
+                    {
+                        if (checkBox(row + 6, column - 6, i) && checkColumn(row + 6, column - 6, i, 6) && checkRow(row + 6, column - 6, i, 6))
+                        {
+                            tumSudokular[row][column] = i;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                tumSudokular[row][column] = 0;
+                            }
+                        }
+                    }
+                    else if (numara == 3 && row < 15 && column > 5)
+                    {
+                        if (checkBox(row - 6, column + 6, i) && checkColumn(row - 6, column + 6, i, 6) && checkRow(row - 6, column + 6, i, 6))
+                        {
+                            tumSudokular[row][column] = i;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                tumSudokular[row][column] = 0;
+                            }
+                        }
+                    }
+                    else if (numara == 4 && row < 15 && column < 15)
+                    {
+                        if (checkBox(row - 6, column - 6, i) && checkColumn(row - 6, column - 6, i, 6) && checkRow(row - 6, column - 6, i, 6))
+                        {
+                            tumSudokular[row][column] = i;
+                            if (recursiveMethod(satir, sutun, numara))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                tumSudokular[row][column] = 0;
+                            }
+                        }
+                    }
+                    */
+                    else
+                    {
+                        // normal
+                        cozulen++;
+                        tumSudokular[row][column] = i;
+                        if (recursiveMethod(satir, sutun, numara))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            cozulen--;
+                            tumSudokular[row][column] = 0;
+                        }
+                        bitis = DateTimeOffset.Now.ToUnixTimeMilliseconds() - baslangic;
+                        if (bitis % 10 == 0)
+                        {
+                            Console.WriteLine(bitis);
+                            cozulenler.Add(cozulen);
+                            arr.Add(bitis);
+                            kacinci++;
+                        }
+                    }
+
+
+
+
+
+                }
+
+                /*
+                if (numara == 0 && row > 5 && column > 5)// 0 ile 2  // 1 i kontrol et 0   + 12 
+                {
+                    if (checkBox(row, column + 12, i) && checkColumn(row, column + 12, i, 0) && checkRow(row, column + 12, i, 12))
+                    {
+
+                        tumSudokular[row][column + 12] = i;
+                        if (recursiveMethod(0, 12, 1))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row][column + 12] = 0;
+                        }
+
+                    }
+                }
+                else if (numara == 1 && row > 5 && column < 15) //1 ile 2  //4 ü kontrol et   12 + 0 
+                {
+                    if (checkBox(row + 12, column, i) && checkColumn(row + 12, column, i, 12) && checkRow(row + 12, column, i, 12))
+                    {
+
+                        tumSudokular[row + 12][column] = i;
+                        if (recursiveMethod(12, 12, 4))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row + 12][column] = 0;
+                        }
+
+                    }
+                }
+
+
+                else if (numara == 2 && row < 9 && column > 11) //2. karşılaştırma 1. ile -6 + 6 * 
+                {
+                    if (checkBox(row, column, i) && checkColumn(row, column, i, satir) && checkRow(row, column, i, sutun))
+                    {
+
+                        tumSudokular[row][column] = i;
+                        if (recursiveMethod(satir, sutun, numara))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row][column] = 0;
+                        }
+
+                    }
+                }
+                else if (numara == 2 && row > 11 && column < 9) //2. karşılaştırma 3. ile +6 -6 geri dön n
+                {
+                    if (checkBox(row, column - 12, i) && checkColumn(row, column - 12, i, 12) && checkRow(row, column - 12, i, 0))
+                    {
+
+                        tumSudokular[row][column - 12] = i;
+                        if (recursiveMethod(12, 0, 3))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row][column - 12] = 0;
+                        }
+
+                    }
+                }
+                else if (numara == 2 && row > 11 && column > 11) //2. karşılaştırma 4. ile + 6 + 6 
+                {
+                    if (checkBox(row + 12, column, i) && checkColumn(row + 12, column, i, 12) && checkRow(row + 12, column, i, 12))
+                    {
+
+                        tumSudokular[row + 12][column] = i;
+                        if (recursiveMethod(12, 12, 4))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row + 12][column] = 0;
+                        }
+
+                    }
+                }
+
+                else if (numara == 3 && row < 15 && column > 5)//3 ile 2 //0  ile et  
+                {
+                    if (checkBox(row - 12, column, i) && checkColumn(row - 12, column, i, 0) && checkRow(row - 12, column, i, 0))
+                    {
+
+                        tumSudokular[row - 12][column] = i;
+                        if (recursiveMethod(0, 0, 0))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row - 12][column] = 0;
+                        }
+
+                    }
+                }
+
+                else if (numara == 4 && row > 11 && row < 15 && column < 15)//4 ile 2 //3 ile et
+                {
+                    if (checkBox(row, column - 12, i) && checkColumn(row, column - 12, i, 12) && checkRow(row, column - 12, i, 0))
+                    {
+
+                        tumSudokular[row][column - 12] = i;
+                        if (recursiveMethod(12, 0, 3))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            tumSudokular[row][column - 12] = 0;
+                        }
+
+                    }
+                }
+                */
+            }
+            //Console.WriteLine("selam");
+            //Guncelle();
+            return false;
+        }
+
+
+
+
+    }
+
+}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//program.cs 
+
+using SON;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace yazlab2a
+{
+    internal static class Program
+    {   
+        static void Main()
+        {   
+            yeni a = new yeni();
+            //Ilkyol ilkyol = new Ilkyol();
+            //ThreadManager threadManager= new ThreadManager();    
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Grafik(a.arr, a.cozulenler));
+            //Grafik grafik = new Grafik();
+            //grafik.Visible = true;
+            
+        }
+        
+
+    }
+}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Grafik.Designer.cs
+namespace yazlab2a
+{
+    partial class Grafik
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Grafik));
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            ((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
+            this.SuspendLayout();
+            // 
+            // chart1
+            // 
+            chartArea1.Name = "ChartArea1";
+            this.chart1.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            this.chart1.Legends.Add(legend1);
+            resources.ApplyResources(this.chart1, "chart1");
+            this.chart1.Name = "chart1";
+            series1.ChartArea = "ChartArea1";
+            series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series1.Legend = "Legend1";
+            series1.Name = "Cozum1";
+            this.chart1.Series.Add(series1);
+            // 
+            // timer1
+            // 
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
+            // Grafik
+            // 
+            resources.ApplyResources(this, "$this");
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.chart1);
+            this.Name = "Grafik";
+            this.Load += new System.EventHandler(this.Grafik_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.chart1)).EndInit();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.DataVisualization.Charting.Chart chart1;
+        private System.Windows.Forms.Timer timer1;
+    }
+}
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Grafik.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace yazlab2a
+{
+    public partial class Grafik : Form
+    {
+        public int sonCozulen;
+        public List<long> arr;
+        public List<int> cozulenler;
+        //public int c0;
+        //public int c1;
+        //public int c2;
+        //public int c3;
+        public Grafik()
+        {   sonCozulen = 0;
+            //c0 = 0;
+            InitializeComponent();
+        }
+        public Grafik(List<long> arr, List<int> cozulenler)
+        {
+            this.arr = new List<long>(arr);
+            this.cozulenler = new List<int>(cozulenler);
+            //this.c0 = c0;
+            //this.c1 = c1;
+            //this.c2 = c2;
+            //this.c3 = c3;
+
+            InitializeComponent();
+        }
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Grafik_Load(object sender, EventArgs e)
+        {   
+            if(arr.Count >= cozulenler.Count)
+            {
+                for (int i = 0; i < cozulenler.Count; i++)
+                {
+                    chart1.Series["Cozum1"].Points.AddXY(arr[i], cozulenler[i]);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < arr.Count; i++)
+                {
+                    chart1.Series["Cozum1"].Points.AddXY(arr[i], cozulenler[i]);
+                }
+            }
+
+           
+            
+            
+            //chart1.Series["Cozum1"].Points.AddXY(0,0);
+            //chart1.Series["Cozum1"].Points.AddXY(10, 15);
+            ////chart1.Series["Cozum1"].Points.AddXY("3", c1);
+            ////chart1.Series["Cozum1"].Points.AddXY("4", c2);
+            ////chart1.Series["Cozum1"].Points.AddXY("5", c3);
+            //chart1.Series["Cozum1"].Points.AddXY("6", sonCozulen);
+
+        }
+    }
+}

@@ -1,0 +1,1351 @@
+//190201003-190201025
+//site.css
+body {
+    padding-top: 50px;
+    padding-bottom: 20px;
+}
+
+/* Set padding to keep content from hitting the edges */
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Override the default bootstrap behavior where horizontal description lists 
+   will truncate terms that are too long to fit in the left column 
+*/
+.dl-horizontal dt {
+    white-space: normal;
+}
+
+/* Set width on the form input elements since they're 100% wide by default */
+input,
+select,
+textarea {
+    max-width: 280px;
+}
+
+.ortala {
+    margin: 0 auto;
+    align-self: center;
+    text-align: center;
+    place-items: center;
+    display: grid;
+    background-color: darkgray;
+}
+
+.form {
+    margin: auto;
+    text-align: center;
+    position: center;
+}
+
+.form-group .form-control {
+    margin: auto;
+    text-align: center;
+}
+
+.ana{
+    
+    margin-left : auto;
+    margin-right : auto;
+}
+
+---------------------------------------------------
+
+//AdminController.cs
+
+using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
+using Microsoft.AspNet.Identity.Owin;
+using proje3.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using System.Web;
+using System.Web.Mvc;
+
+
+
+namespace proje3.Controllers
+{
+    public class AdminController : Controller
+    {
+        private ProjeContext db = new ProjeContext();
+
+
+        // GET: Admin
+        public ActionResult Index()
+        {
+            return View();
+        }
+        // GET
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        public ActionResult List()
+        {
+            var liste = db.Users.ToList();
+            return View(liste);
+        }
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        public ActionResult Edit(string id)
+        {
+            //string donustur;
+            //if(id != null)
+            //{
+            //    donustur = id.ToString();
+            //}
+            //else
+            //{
+            //    return View();
+            //}
+            ApplicationUser a = new ApplicationUser();
+            var ara = db.Users.Find(id);
+            return View(ara);
+        }
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        [HttpPost]
+        public ActionResult Edit([Bind(Include = "Id,UserName,PasswordHash")] ApplicationUser applicationUser)
+        {
+            if (ModelState.IsValid)
+            {
+                var varMi = db.Users.Find(applicationUser.Id);
+                if (varMi != null)
+                {
+                    varMi.UserName = applicationUser.UserName;
+                    varMi.PasswordHash = applicationUser.PasswordHash;
+
+                    db.SaveChanges();
+                    return RedirectToAction("List");
+                }
+
+            }
+            return View();
+        }
+
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        public ActionResult Delete(string id)//int? int ama null olabilir demek normal intten farkı budur
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var ara = db.Users.Find(id);// ara applicationuser
+            if (ara == null)
+            {
+                return HttpNotFound();
+            }
+            return View(ara);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        [ActionName("Delete")]
+        public ActionResult DeletePost(string id)
+        {
+            var ara = db.Users.Find(id);
+            if (ara != null)
+            {
+                System.Diagnostics.Debug.WriteLine("ara null değil ");
+                db.Users.Remove(ara);
+                db.SaveChanges();
+                return RedirectToAction("List");
+            }
+            else
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+        }
+
+
+
+        //GET
+        [Authorize(Roles = MyConstants.RoleAdmin)]// burası kullanıcılar icin
+        public ActionResult Sorgu(string OgrenciNo, string yazarAd,
+            string ogretimTuru, string dersAdi, string ozet, string teslimDonemi,
+            string projeBasligi, string anahtarKelimeler, string danismanBilgileri, string juriBilgileri)
+        {
+
+            if (OgrenciNo == null && yazarAd == null && ogretimTuru == null
+                && dersAdi == null && ozet == null && teslimDonemi == null && projeBasligi == null &&
+                anahtarKelimeler == null && danismanBilgileri == null && juriBilgileri == null)
+            {
+
+                return View(db.Veriler.ToList());
+            }
+
+            return View(db.Veriler.Where(i => (i.yazarAd.Contains(yazarAd) && i.ogrenciNo.Contains(OgrenciNo)
+        && i.dersAdi.Contains(dersAdi) && i.teslimDonemi.Contains(teslimDonemi) && i.ogretimTuru.Contains(ogretimTuru) && i.projeBasligi.Contains(projeBasligi) && i.anahtarKelimeler.Contains(anahtarKelimeler)
+        && i.ozet.Contains(ozet) && i.danismanBilgileri.Contains(danismanBilgileri) && i.juriBilgileri.Contains(juriBilgileri))).ToList());
+
+
+        }
+
+
+
+
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        public ActionResult DeleteVeri(int? id)//int? int ama null olabilir demek normal intten farkı budur
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var ara = db.Veriler.Find(id);// ara applicationuser
+            if (ara == null)
+            {
+                return HttpNotFound();
+            }
+            return View(ara);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        [ActionName("DeleteVeri")]
+        public ActionResult DeleteVeri(int id)
+        {
+            var ara = db.Veriler.Find(id);
+            if (ara != null)
+            {
+                System.Diagnostics.Debug.WriteLine("ara null değil ");
+                db.Veriler.Remove(ara);
+                db.SaveChanges();
+                return RedirectToAction("Sorgu");
+            }
+            else
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+        }
+
+
+    }
+}
+
+---------------------------------------------------
+
+//Home Controller
+
+using iTextSharp.text.pdf.parser;
+using iTextSharp.text.pdf;
+using proje3.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Web;
+using System.Web.Mvc;
+using System.Text;
+using System.IO;
+using Microsoft.AspNet.Identity;
+using System.Net;
+using System.Data.Entity;
+
+namespace proje3.Controllers
+{
+    public class HomeController : Controller
+    {
+        private string _FileName;
+        private ProjeContext _context = new ProjeContext();
+
+        //GET
+        [Authorize(Roles = MyConstants.RoleAdmin + "," + MyConstants.RoleUser)]
+        public ActionResult DosyaYukle()
+        {
+
+            return View();
+        }
+
+        [HttpPost]
+        [Authorize(Roles = MyConstants.RoleAdmin + "," + MyConstants.RoleUser)]
+        public ActionResult DosyaYukle(HttpPostedFileBase file)
+        {
+            try
+            {
+                if (file.ContentLength > 0)
+                {
+                    _FileName = System.IO.Path.GetFileName(file.FileName);
+                    string _path = System.IO.Path.Combine(Server.MapPath("~/UploadedFiles"), _FileName);
+                    file.SaveAs(_path);
+                    // burada Veri modelinin icini doldurmalıyız
+                    verileriYukle();
+                    Console.WriteLine("içerde ");
+                }
+                ViewBag.Message = "Dosya yüklendi!";
+
+
+                return View();
+            }
+            catch
+            {
+                ViewBag.Message = "Dosya yükleme başarısız!";
+                return View();
+            }
+
+        }
+
+        public void verileriYukle()
+        {
+            //gecici degiskenler:
+            Veri v = new Veri();
+            string yazarAd = "";
+            string ogrenciNo = "";
+            string ogretimTuru = "";
+            string dersAdi = "";
+            string ozet = "";
+            string teslimDonemi = "";
+            string projeBasligi = "";
+            string anahtarKelimeler = "";
+            string danismanBilgleri = "";
+            string danismanUnvan = "";
+            string juriBilgiler = "";
+            string juriUnvan = "";
+            int yazarSayisi = 1;
+            int indeks = 0;
+            string sayfa;
+            string dosyaAdi;
+            string[] lines;
+            string[] anahtarlarTmp;
+            try
+            {
+                string yol = $"C:/Users/furka/Desktop/proje/proje/proje/UploadedFiles/{_FileName}";//yol değişmeli
+                //string hadee = this.HttpContext.Server.MapPath(".");
+                string hadee2 = Server.MapPath("~");
+                //Console.WriteLine(hadee);
+                //System.Diagnostics.Debug.WriteLine("bu mu1 = "+hadee);
+                System.Diagnostics.Debug.WriteLine("bu mu2 = " + hadee2);//bu
+                hadee2 += $"UploadedFiles\\{_FileName}";
+                System.Diagnostics.Debug.WriteLine("bu mu2 = " + hadee2);
+                dosyaAdi = _FileName;
+
+
+                using (PdfReader reader = new PdfReader(hadee2))
+                {
+                    for (int i = 1; i <= reader.NumberOfPages; i++)
+                    {
+                        if (i == 2)
+                        {
+                            sayfa = PdfTextExtractor.GetTextFromPage(reader, i);
+                            lines = sayfa.Replace("\r", "").Split('\n');
+                            dersAdi = lines[6];
+                            for (int j = 8; j < 14; j++)//eklendi
+                            {
+                                projeBasligi += lines[j];
+                                if (lines[j + 1] != " ")
+                                    continue;
+                                else
+                                {
+                                    yazarAd = lines[j + 2];
+                                    if (lines[j + 3] != " ")
+                                    {
+                                        yazarAd += ", " + lines[j + 3];
+                                        if (lines[j + 4] != " ")
+                                        {
+                                            yazarAd += ", " + lines[j + 4];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            for (int j = 0; j < lines.Length; j++)
+                            {
+                                if (lines[j].Contains("Danışman"))
+                                {
+
+                                    danismanBilgleri = lines[j - 1];
+                                    juriBilgiler = lines[j - 1];
+                                    juriBilgiler += ", " + lines[j + 2];
+                                    juriBilgiler += ", " + lines[j + 5];
+                                }
+                                else if (lines[j].Contains("Tarih"))
+                                {
+                                    teslimDonemi = lines[j].Substring(31, 4);
+                                    if (lines[j].Contains(".06"))
+                                    {
+                                        teslimDonemi = (Int32.Parse(teslimDonemi) - 1) + "-" + teslimDonemi + " Bahar";
+                                    }
+                                    else if (lines[j].Contains(".01"))
+                                    {
+                                        teslimDonemi = (Int32.Parse(teslimDonemi) - 1) + "-" + teslimDonemi + " Güz";
+                                    }
+                                }
+                            }
+                            Console.WriteLine(sayfa);
+                        }
+
+                        else if (i == 4)//öğrenci numarası ve öğretim türlerini çıkart
+                        {
+                            sayfa = PdfTextExtractor.GetTextFromPage(reader, i);
+                            lines = sayfa.Replace("\r", "").Split('\n');
+                            for (int j = 0; j < lines.Length; j++)
+                            {
+                                if (lines[j].Contains("Öğrenci No"))
+                                {
+                                    string resultString = Regex.Match(lines[j], @"\d+").Value;
+                                    ogrenciNo += Int32.Parse(resultString) + " , ";
+                                    if (resultString.Substring(3, 3) == "201")
+                                    {
+                                        ogretimTuru = "1. Öğretim";
+                                    }
+                                    else
+                                    {
+                                        ogretimTuru = "2. Öğretim";
+                                    }
+                                }
+                            }
+                            ogrenciNo = ogrenciNo.Substring(0, ogrenciNo.Length - 3);
+                            //Console.WriteLine(sayfa);
+
+                        }
+                        else if (i == 10)//özet ve anahtar kelimeleri çıkart
+                        {
+                            sayfa = PdfTextExtractor.GetTextFromPage(reader, i);
+                            int anahtarKelimeOzetIndeks = sayfa.IndexOf("ÖZET");
+                            int anahtarKelimeAnahtarKelimelerIndeks = sayfa.IndexOf("Anahtar kelimeler:");
+                            int bitisIndeks = sayfa.IndexOf(".\n\n");
+                            ozet = sayfa.Substring(anahtarKelimeOzetIndeks + 6, anahtarKelimeAnahtarKelimelerIndeks - 8 - anahtarKelimeOzetIndeks);
+                            anahtarKelimeler = sayfa.Substring(anahtarKelimeAnahtarKelimelerIndeks + 19, sayfa.Length - (anahtarKelimeAnahtarKelimelerIndeks + 26));
+                            anahtarlarTmp = anahtarKelimeler.Replace("\n", "").Split(',');
+                            anahtarKelimeler = "";
+                            anahtarKelimeler += anahtarlarTmp[0] + " , ";
+                            for (int j = 1; j < anahtarlarTmp.Length; j++)//başlarındaki boşluklar kalkıyor(1. hariç onda zaten yok)
+                            {
+                                anahtarlarTmp[j] = anahtarlarTmp[j].Substring(1, anahtarlarTmp[j].Length - 1);
+                                anahtarKelimeler += anahtarlarTmp[j] + " , ";
+                            }
+                            anahtarKelimeler = anahtarKelimeler.Substring(0, anahtarKelimeler.Length - 3);
+                            anahtarKelimeler = anahtarKelimeler.ToLower();
+
+                        }
+
+                    }
+                    kontrol();
+                    VerileriResmenYukle();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            void kontrol()
+            {
+                System.Diagnostics.Debug.WriteLine("dersAdi = " + dersAdi);
+                System.Diagnostics.Debug.WriteLine("proje başlığı = " + projeBasligi);
+                System.Diagnostics.Debug.WriteLine("yazaradi = " + yazarAd);
+                System.Diagnostics.Debug.WriteLine("ogrencino = " + ogrenciNo);
+                System.Diagnostics.Debug.WriteLine("ogretimTuru = " + ogretimTuru);
+                System.Diagnostics.Debug.WriteLine("danismanBilgleri = " + danismanBilgleri);
+                System.Diagnostics.Debug.WriteLine("juriBilgiler = " + juriBilgiler);
+                System.Diagnostics.Debug.WriteLine("teslimDonemi = " + teslimDonemi);
+                System.Diagnostics.Debug.WriteLine("anahtarKelimeler = " + anahtarKelimeler);
+                System.Diagnostics.Debug.WriteLine("ozet = \n" + ozet);
+
+
+            }
+            void VerileriResmenYukle()
+            {
+                v.dersAdi = dersAdi;
+                v.projeBasligi = projeBasligi;
+                v.yazarAd = yazarAd;
+                v.ogrenciNo = ogrenciNo;
+                v.ogretimTuru = ogretimTuru;
+                v.danismanBilgileri = danismanBilgleri;
+                v.juriBilgileri = juriBilgiler;
+                v.teslimDonemi = teslimDonemi;
+                v.anahtarKelimeler = anahtarKelimeler;
+                v.ozet = ozet;
+                v.dosyaAdi = dosyaAdi;
+                v.UserName = User.Identity.GetUserName();
+                _context.Veriler.Add(v);
+                _context.SaveChanges();
+            }
+            /* 
+             iText kullanabiliriz belki itextsharp da olabilir ama o depracated olmuş sıkıntı olabilir
+             */
+            /*
+            Veri v = new Veri();
+            v.yazarAd = "ekmek";
+            projeContext.Veriler.Add(v);
+            projeContext.SaveChanges();
+            */
+            /*
+            StringBuilder processed = new StringBuilder();
+
+            for (int i = 1; i <= pdfDocument.GetNumberOfPages(); ++i)
+            {
+                var page = pdfDocument.GetPage(i);
+                string text = PdfTextExtractor.GetTextFromPage(page, strategy);
+                processed.Append(text);
+            }
+            */
+
+        }
+
+        //GET
+        [Authorize(Roles = MyConstants.RoleUser + "," + MyConstants.RoleAdmin)]// burası kullanıcılar icin
+        public ActionResult Sorgu(string OgrenciNo, string yazarAd,
+            string ogretimTuru, string dersAdi, string ozet, string teslimDonemi,
+            string projeBasligi, string anahtarKelimeler, string danismanBilgileri, string juriBilgileri)
+        {
+
+
+            string name = User.Identity.GetUserName();// şu anki kullanıcının idsi
+
+            if (name == "appadmin")
+            {
+                return RedirectToAction("Sorgu", "Admin");
+            }
+
+
+            if (OgrenciNo == null && yazarAd == null && ogretimTuru == null
+                && dersAdi == null && ozet == null && teslimDonemi == null && projeBasligi == null &&
+                anahtarKelimeler == null && danismanBilgileri == null && juriBilgileri == null)
+            {
+                System.Diagnostics.Debug.WriteLine("if reis");
+                var list = _context.Veriler.Where(i => i.UserName.Equals(name));
+                return View(list.ToList());
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("else else else movuk");
+                return View(_context.Veriler.Where(i => (i.yazarAd.Contains(yazarAd) && i.ogrenciNo.Contains(OgrenciNo)
+           && i.dersAdi.Contains(dersAdi) && i.teslimDonemi.Contains(teslimDonemi) && i.ogretimTuru.Contains(ogretimTuru) && i.projeBasligi.Contains(projeBasligi) && i.anahtarKelimeler.Contains(anahtarKelimeler)
+           && i.ozet.Contains(ozet) && i.danismanBilgileri.Contains(danismanBilgileri) && i.juriBilgileri.Contains(juriBilgileri)) && i.UserName.Equals(name)).ToList());
+            }
+
+        }
+
+        // Sorgunun postu yok muydu ya
+        [Authorize(Roles = MyConstants.RoleAdmin)]
+        public ActionResult DonemlereGore(string kullanici, string donem, string dersAdi)
+        {
+            if (kullanici == null || donem == null || dersAdi == null)
+            {
+                var liste = _context.Veriler.Where(i => i.UserName == kullanici && i.teslimDonemi == donem && i.dersAdi == dersAdi).ToList();
+                return View(liste);
+            }
+
+
+            return View(_context.Veriler.Where(i => i.UserName == kullanici && i.teslimDonemi == donem && i.dersAdi == dersAdi).ToList());
+        }
+        //[Authorize(Roles = MyConstants.RoleAdmin + "," + MyConstants.RoleUser)]
+        //[HttpPost]
+        //public ActionResult DonemlereGore()
+        //{   
+
+        //    return View();
+        //}
+        //[Authorize(Roles = MyConstants.RoleAdmin + "," + MyConstants.RoleUser)]
+        //[HttpPost]
+        //public ActionResult DonemlereGore()
+        //{
+        //    return View();
+        //}
+
+
+
+        [Authorize(Roles = MyConstants.RoleUser)]
+        public ActionResult Delete(int? id)//int? int ama null olabilir demek normal intten farkı budur
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var ara = _context.Veriler.Find(id);// ara applicationuser
+            if (ara == null)
+            {
+                return HttpNotFound();
+            }
+            return View(ara);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = MyConstants.RoleUser)]
+        [ActionName("Delete")]
+        public ActionResult DeletePost(int id)
+        {
+            var ara = _context.Veriler.Find(id);
+            if (ara != null)
+            {
+                System.Diagnostics.Debug.WriteLine("ara null değil ");
+                _context.Veriler.Remove(ara);
+                _context.SaveChanges();
+                return RedirectToAction("Sorgu");
+            }
+            else
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+        }
+
+    }
+}
+
+-------------------------------
+//Veri.Cs
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace proje3.Models
+{
+    public class Veri
+    {
+        [Key]
+        public int verilerID { get; set; }
+        public string yazarAd { get; set; }// ad soyad olarark
+        public string ogrenciNo { get; set; }
+        public string ogretimTuru { get; set; }
+        public string dersAdi { get; set; }
+        public string ozet { get; set; }
+        public string teslimDonemi { get; set; }
+        public string projeBasligi { get; set; }
+        public string anahtarKelimeler { get; set; }
+        public string danismanBilgileri { get; set; }//ad soyad ünvan
+        public string danismanUnvan { get; set; }
+        public string juriBilgileri { get; set; }  //ad soyad unvan danışmanda juridir
+        public string juriUnvan { get; set; }
+        public string UserName { get; set; } // herkes kendi eklediğini gorecek
+        public string dosyaAdi { get; set; }
+
+
+    }
+}
+
+-----------------------------------------------
+//GirisModel.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace proje3.Models
+{
+    public class GirisModel:ApplicationUser
+    {
+        public string Password { get; set; }
+        public string ConfirmPassword { get; set; }
+    }
+}
+-----------------------------------------------------
+//Admin 
+//Delete.cshtml
+@model proje3.Models.ApplicationUser
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+<div class="ortala ort">
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.UserName)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.UserName)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.PasswordHash)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.PasswordHash)
+        </dd>
+    </dl>
+
+    @using (Html.BeginForm()) {     
+    <div class="form-actions no-color">
+    <input type="submit" value="Sil" class="btn btn-danger" /> |
+        @Html.ActionLink("Listeye Geri Dön", "List", null, new { style = "white" })
+    </div>
+    
+    }
+</div>
+-------------------------
+//Admin
+//DeleteVeri.cshtml
+@model proje3.Models.Veri
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete Veri</h2>
+
+<div class="ortala ort">
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.yazarAd)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.yazarAd)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ogrenciNo)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ogrenciNo)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ogretimTuru)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ogretimTuru)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.dersAdi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.dersAdi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ozet)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ozet)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.teslimDonemi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.teslimDonemi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.projeBasligi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.projeBasligi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.anahtarKelimeler)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.anahtarKelimeler)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.danismanBilgileri)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.danismanBilgileri)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.juriBilgileri)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.juriBilgileri)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.dosyaAdi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.dosyaAdi)
+        </dd>
+
+    </dl>
+
+    @using (Html.BeginForm())
+    {
+        <div class="form-actions no-color">
+            <input type="submit" value="Sil" class="btn btn-danger" /> |
+            @Html.ActionLink("Sorguya Geri Dön", "Sorgu", null, new { style = "white" })
+        </div>
+
+    }
+</div>
+
+-------------------------------------------------------
+//Admin
+//Edit.cshtml
+@model proje3.Models.ApplicationUser
+@{
+    ViewBag.Title = "Edit";
+}
+
+<h2>Edit</h2>
+
+@using (Html.BeginForm())
+{
+
+    <div class="form-group">
+        @Html.LabelFor(model => model.UserName, new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.TextBoxFor(model => model.UserName, new { @class = "form-control" })
+            @Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })
+        </div>
+    </div>
+
+    <div class="form-group">
+        @Html.LabelFor(model => model.PasswordHash, new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.TextAreaFor(model => model.PasswordHash, new { @class = "form-control" })
+            @Html.ValidationMessageFor(model => model.PasswordHash, "", new { @class = "text-danger" })
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="col-md-offset-2 col-md-10">
+            <input type="submit" value="Kaydet" class="btn btn-success" style="margin-top:15px" onclick="@("window.location.href='" + @Url.Action("List", "Admin") + "'");" />
+        </div>
+    </div>
+
+
+}
+------------------------------------------------
+//Admin
+//List.cshtml
+@model IEnumerable<proje3.Models.ApplicationUser> 
+@{
+    ViewBag.Title = "List";
+}
+
+<h2>List</h2>
+
+<table class="ortala ort">
+    <tr>
+        <th>
+            Kullanıcı Adı
+        </th>
+        <th>
+            Şifre
+        </th>
+    </tr>
+    @foreach(var i in Model)
+    {
+        <tr>
+            <td>
+                @i.UserName
+            </td>
+            <td>
+                @i.PasswordHash
+            </td>
+            <td>
+                <form style="display:inline">
+                    @Html.ActionLink("Düzenle","Edit", new { id = i.Id }, new {@class= "btn btn-warning btn-xs btn-sm" }) |
+                    @Html.ActionLink("Sil","Delete", new {id=i.Id}, new { @class = "btn btn-danger btn-xs btn-sm" })
+                </form>
+            </td>
+        </tr>
+
+    }
+    @if(ViewBag.Message != null)
+    {
+        <tr>
+            <td>
+                @ViewBag.Message
+            </td>
+        </tr>
+    }
+</table>
+
+-------------------------------------
+//Admin
+//Sorgu.cshtml
+@model IEnumerable<proje3.Models.Veri>
+    @{ ViewBag.Title = "Sorgu"; }
+
+    <br />
+    <br />
+
+
+    <div class="ortala ort">
+        @using (Html.BeginForm("Sorgu", "Admin", FormMethod.Post))
+        {
+
+        @Html.TextBox("OgrenciNo", "", new { placeholder = "Öğrenci Numaraları" })
+        @Html.TextBox("yazarAd", "", new { placeholder = "Yazar Adları" })
+        @Html.TextBox("ogretimTuru", "", new { placeholder = "Öğretim Türü" })
+        @Html.TextBox("dersAdi", "", new { placeholder = "Ders Adı" })
+        @Html.TextBox("ozet", "", new { placeholder = "Özet" })
+        @Html.TextBox("teslimDonemi", "", new { placeholder = "Teslim Donemi" })
+        @Html.TextBox("projeBasligi", "", new { placeholder = "Proje Başlığı" })
+        @Html.TextBox("anahtarKelimeler", "", new { placeholder = "Anahtar Kelimeler" })
+        @Html.TextBox("danismanBilgileri", "", new { placeholder = "Danisman Bilgileri" })
+        @Html.TextBox("juriBilgileri", "", new { placeholder = "Jüri Bilgileri" })
+
+        <input type="submit" value="Sorgula" />}
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th> Öğrenci Numaraları</th>
+                    <th> Yazar Adları</th>
+                    <th> Ogretim Türü</th>
+                    <th> Ders Adı</th>
+                    <th> Özet</th>
+                    <th> Teslim Dönemi</th>
+                    <th> Proje Başlığı</th>
+                    <th> Anahtar Kelimeler</th>
+                    <th> Danışman Bilgileri</th>
+                    <th> Jüri Bilgileri</th>
+                    <th> PDF</th>
+                </tr>
+
+            </thead>
+            <tbody>
+                <!--
+                    <tr>
+                    <td> Html.TextBox("OgrenciNo", "", new { placeholder = "Öğrenci No " })  </td>
+                    <td> Html.TextBox("yazarAd", "", new { placeholder = "Öğrenci No " }) </td>
+                    <td> Html.TextBox("ogretimTuru", "", new { placeholder = "Öğrenci No " }) </td>
+                    <td> Html.TextBox("dersAdi", "", new { placeholder = "Ders Adı" })</td>
+                    <td> Html.TextBox("ozet", "", new { placeholder = "Ozet" })</td>
+                    <td> Html.TextBox("teslimDonemi", "", new { placeholder = "Teslim Donemi" })</td>
+                    <td> Html.TextBox("projeBasligi", "", new { placeholder = "Proje Basligi" })</td>
+                    <td> Html.TextBox("anahtarKelimeler", "", new { placeholder = "Anahtar Kelimeler" })</td>>
+                    <td> Html.TextBox("danismanBilgileri", "", new { placeholder = "Danisman Bilgileri" })</td>
+                    <td> Html.TextBox("juriBilgileri", "", new { placeholder = "juriBilgileri" })</td>
+
+                </tr>
+
+                -->
+                @if (Model.Count() == 0)
+                {
+                <tr>
+                    <td>
+                        Kayıt yok
+                    </td>
+                </tr>
+                }
+                else
+                {
+                foreach (var i in Model)
+                {
+
+                <tr>
+                    <td>@i.ogrenciNo</td>
+                    <td>@i.yazarAd</td>
+                    <td>@i.ogretimTuru</td>
+                    <td>@i.dersAdi</td>
+                    <td>@i.ozet</td>
+                    <td>@i.teslimDonemi</td>
+                    <td>@i.projeBasligi</td>
+                    <td>@i.anahtarKelimeler</td>
+                    <td>@i.danismanBilgileri</td>
+                    <td>@i.juriBilgileri</td>
+                    <td>
+                        <a href="~/UploadedFiles/@i.dosyaAdi" target="_blank">@i.dosyaAdi</a><!-- burada sadece dosya adını tutarsak onu gösterebiliriz-->
+                    </td>
+                    <td>
+                        <form style="display:inline">
+                            @Html.ActionLink("Sil", "DeleteVeri", new { id = i.verilerID }, new { @class = "btn btn-danger btn-xs btn-sm" })
+                        </form>
+                    </td>
+                </tr>}
+                }
+            </tbody>
+
+        </table>
+        @Html.ActionLink("Donemlere Göre", "DonemlereGore", "Home")
+    </div>
+
+
+--------------------------------------------------------------------
+//Home
+//Delete.cshtml
+@model proje3.Models.Veri
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+<div class="ortala ort">
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.yazarAd)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.yazarAd)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ogrenciNo)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ogrenciNo)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ogretimTuru)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ogretimTuru)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.dersAdi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.dersAdi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ozet)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ozet)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.teslimDonemi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.teslimDonemi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.projeBasligi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.projeBasligi)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.anahtarKelimeler)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.anahtarKelimeler)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.danismanBilgileri)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.danismanBilgileri)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.juriBilgileri)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.juriBilgileri)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.dosyaAdi)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.dosyaAdi)
+        </dd>
+
+    </dl>
+
+    @using (Html.BeginForm())
+    {
+        <div class="form-actions no-color">
+            <input type="submit" value="Sil" class="btn btn-danger" /> |
+            @Html.ActionLink("Sorguya Geri Dön", "Sorgu", null, new { style = "white" })
+        </div>
+
+    }
+</div>
+
+--------------------------------------------------------------
+//Home
+//DonemlereGore.cshtml
+@model IEnumerable<proje3.Models.Veri>
+    @{
+    ViewBag.Title = "Donemlere Gore";
+    }
+
+    <h2>Donemlere Göre</h2>
+    <div class="ortala ortada">
+        @using (Html.BeginForm("DonemlereGore", "Home", FormMethod.Post))
+        {
+        @Html.TextBox("kullanici","",new {placeholder="Kullanıcı"})
+        @Html.TextBox("donem","", new { placeholder = "Teslim Donemi" })
+        @Html.TextBox("dersAdi","",new { placeholder = "Ders Adı" })
+        <input type="submit" value="Sorgu2" />
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th> Ogrenci No</th>
+                    <th> Yazar Adları</th>
+                    <th> Ogretim Türü</th>
+                    <th> Ders Adı</th>
+                    <th> Ozet</th>
+                    <th> Teslim Donemi</th>
+                    <th> Proje Basşlığı</th>
+                    <th> Anahtar Kelimeler</th>
+                    <th> Danışman Bilgileri</th>
+                    <th> Juri Bilgileri</th>
+                    <th> PDF</th>
+                </tr>
+
+            </thead>
+            <tbody>
+                @if (Model.Count() == 0)
+                {
+                <tr>
+                    <td>
+                        Kayıt yok
+                    </td>
+                </tr>
+
+                }
+                else
+                {
+                foreach (var i in Model)
+                {
+
+                <tr>
+                    <td>@i.ogrenciNo</td>
+                    <td>@i.yazarAd</td>
+                    <td>@i.ogretimTuru</td>
+                    <td>@i.dersAdi</td>
+                    <td>@i.ozet</td>
+                    <td>@i.teslimDonemi</td>
+                    <td>@i.projeBasligi</td>
+                    <td>@i.anahtarKelimeler</td>
+                    <td>@i.danismanBilgileri</td>
+                    <td>@i.juriBilgileri</td>
+                    <td>
+                        <a href="~/UploadedFiles/@i.dosyaAdi" target="_blank">@i.dosyaAdi</a><!-- burada sadece dosya adını tutarsak onu gösterebiliriz-->
+                    </td>
+
+                </tr>
+                }
+                }
+            </tbody>
+
+        </table>
+
+
+
+        }
+
+    </div>
+-------------------------------------
+//Home
+//DosyaYukle.cshtml
+
+
+@{
+    ViewBag.Title = "DosyaYukle";
+}
+
+<h2>DosyaYukle</h2>
+
+@using (Html.BeginForm("DosyaYukle", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    <div>
+        @Html.TextBox("file", "", new { type = "file" }) <br />
+        <input type="submit" value="Upload" />
+        @ViewBag.Message
+    </div>
+}
+<!--
+Submite basınca upload actionresulta bakıyor    
+    ordaki value actionresult methodunun ismi olmak zorunda emin değilim
+-->
+--------------------------------------------------------------------------
+//Home
+//Sorgu.cshtml
+@model IEnumerable<proje3.Models.Veri>
+@{ ViewBag.Title = "Sorgu"; }
+
+<br />
+<br />
+
+
+<div class="ortala ort">
+    @using (Html.BeginForm("Sorgu", "Home", FormMethod.Post))
+    {
+    @Html.TextBox("OgrenciNo", "", new { placeholder = "Öğrenci Numaraları" })
+    @Html.TextBox("yazarAd", "", new { placeholder = "Yazar Adları" })
+    @Html.TextBox("ogretimTuru", "", new { placeholder = "Öğretim Türü" })
+    @Html.TextBox("dersAdi", "", new { placeholder = "Ders Adı" })
+    @Html.TextBox("ozet", "", new { placeholder = "Özet" })
+    @Html.TextBox("teslimDonemi", "", new { placeholder = "Teslim Donemi" })
+    @Html.TextBox("projeBasligi", "", new { placeholder = "Proje Başlığı" })
+    @Html.TextBox("anahtarKelimeler", "", new { placeholder = "Anahtar Kelimeler" })
+    @Html.TextBox("danismanBilgileri", "", new { placeholder = "Danisman Bilgileri" })
+    @Html.TextBox("juriBilgileri", "", new { placeholder = "Jüri Bilgileri" })
+
+    <input type="submit" value="Sorgula" />}
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th> Öğrenci Numaraları</th>
+                <th> Yazar Adları</th>
+                <th> Ogretim Türü</th>
+                <th> Ders Adı</th>
+                <th> Özet</th>
+                <th> Teslim Dönemi</th>
+                <th> Proje Başlığı</th>
+                <th> Anahtar Kelimeler</th>
+                <th> Danışman Bilgileri</th>
+                <th> Jüri Bilgileri</th>
+                <th> PDF</th>
+            </tr>
+
+        </thead>
+        <tbody>
+            @if (Model.Count() == 0)
+            {
+            <tr>
+                <td>
+                    Kayıt yok
+                </td>
+            </tr> }
+            else
+            {
+            foreach (var i in Model)
+            {
+
+            <tr>
+                <td>@i.ogrenciNo</td>
+                <td>@i.yazarAd</td>
+                <td>@i.ogretimTuru</td>
+                <td>@i.dersAdi</td>
+                <td>@i.ozet</td>
+                <td>@i.teslimDonemi</td>
+                <td>@i.projeBasligi</td>
+                <td>@i.anahtarKelimeler</td>
+                <td>@i.danismanBilgileri</td>
+                <td>@i.juriBilgileri</td>
+                <td>
+                    <a href="~/UploadedFiles/@i.dosyaAdi" target="_blank">@i.dosyaAdi</a><!-- burada sadece dosya adını tutarsak onu gösterebiliriz-->
+                </td>
+                <td>
+                    <form style="display:inline">
+                        @Html.ActionLink("Sil", "Delete", new { id = i.verilerID }, new { @class = "btn btn-danger btn-xs btn-sm" })
+                    </form>
+                </td>
+            </tr>                }
+            }
+        </tbody>
+
+    </table>
+
+</div>
+
+
+---------------------------------------------------
+//Startup.cs
+using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
+using Microsoft.Owin;
+using Owin;
+using proje3.Models;
+using System.Linq;
+
+[assembly: OwinStartupAttribute(typeof(proje3.Startup))]
+namespace proje3
+{
+    public partial class Startup
+    {
+        public void Configuration(IAppBuilder app)
+        {
+            ConfigureAuth(app);
+            PopulateUserandRoles();
+        }
+
+        public void PopulateUserandRoles()
+        {
+            //var db = new ApplicationDbContext();
+            var db = new ProjeContext();
+            //var projecontext = new ProjeContext();
+            //var db = ProjeContext.Create();
+            // popualtin roles
+            if (!db.Roles.Any(x => x.Name == MyConstants.RoleAdmin))
+            {
+                db.Roles.Add(new Microsoft.AspNet.Identity.EntityFramework.IdentityRole(MyConstants.RoleAdmin));
+                db.SaveChanges();
+            }
+            if (!db.Roles.Any(x => x.Name == MyConstants.RoleUser))
+            {
+                db.Roles.Add(new Microsoft.AspNet.Identity.EntityFramework.IdentityRole(MyConstants.RoleUser));
+                db.SaveChanges();
+            }
+
+            if (!db.Users.Any(x => x.UserName == "appadmin"))
+            {
+                var userStore = new UserStore<ApplicationUser>(db);
+                var userManager = new ApplicationUserManager(userStore);
+
+                var roleStore = new RoleStore<IdentityRole>(db);
+                var roleManager = new RoleManager<IdentityRole>(roleStore);
+
+                // kullaniciyi oluşturuyor
+                var newUser = new ApplicationUser
+                {
+                    Id = "1",
+                    Email = "metehanmart@gmail.com",
+                    UserName = "appadmin"
+                };
+
+                userManager.Create(newUser, "applicationadmin");// 2. parametre şifre
+                userManager.AddToRole(newUser.Id, MyConstants.RoleAdmin);// role ekledi
+                db.SaveChanges();
+            }
+
+            if (!db.Users.Any(x => x.UserName == "appuser"))
+            {
+                var userStore = new UserStore<ApplicationUser>(db);
+                var userManager = new ApplicationUserManager(userStore);
+
+                var roleStore = new RoleStore<IdentityRole>(db);
+                var roleManager = new RoleManager<IdentityRole>(roleStore);
+
+                // kullaniciyi oluşturuyor
+                var newUser = new ApplicationUser
+                {
+                    Email = "metehasd@gmail.com",
+                    UserName = "appuser"
+                };
+
+                userManager.Create(newUser, "applicationuser");// 2. parametre şifre
+                userManager.AddToRole(newUser.Id, MyConstants.RoleUser);// role ekledi
+
+
+                db.SaveChanges();
+            }
+
+        }
+
+
+    }
+}

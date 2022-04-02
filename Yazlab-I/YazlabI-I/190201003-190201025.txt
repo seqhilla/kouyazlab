@@ -1,0 +1,2035 @@
+// ----------------> Program.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Threading;
+
+namespace yazlab1._1
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            //Application.Run(new Form1());
+
+            Thread thread1 = new Thread(Form1);
+            Thread thread2 = new Thread(Form3);
+            thread1.Start();
+            thread2.Start();
+
+
+        }
+        public static void Form1()
+        {
+            Application.Run(new Form1());
+        }
+        public static void Form3()
+        {
+            Application.Run(new Form3());
+        }
+        
+
+    }
+}
+
+
+// ---------------------> Form1.cs
+
+using MySql.Data.MySqlClient;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Threading;
+
+
+namespace yazlab1._1
+{
+    public partial class Form1 : Form
+    {
+        public ThreadStart thread;
+        public Thread t;
+        public delegate void testDelegate();
+        public string kullanici;
+        public string sifre;
+        public static string girkullanici, girsifre;
+        public MySql.Data.MySqlClient.MySqlConnection conn;
+        public string kKullaniciAdi;
+        private TabControl tabControl1;
+        private TabPage tabPage1;
+        private TabPage tabPage2;
+        private Button button1;
+        private TextBox textBox2;
+        private TextBox textBox1;
+        private Label label2;
+        private Label label1;
+        private TabPage tabPage3;
+        private Label label3;
+        private Button button2;
+        private TextBox textBox5;
+        private TextBox textBox4;
+        private TextBox textBox3;
+        private Label label6;
+        private Label label5;
+        private Label label4;
+        private Label label10;
+        private Label label9;
+        private Label label8;
+        private Label label7;
+        private Button button3;
+        private TextBox textBox8;
+        private TextBox textBox7;
+        private TextBox textBox6;
+        public string kSifre;
+        public Form1()
+        {
+            InitializeComponent();
+            label3.Visible = false;
+            label10.Visible = false;
+            textBox2.UseSystemPasswordChar = true;
+            textBox4.UseSystemPasswordChar = true;
+            textBox5.UseSystemPasswordChar = true;
+            textBox7.UseSystemPasswordChar = true;
+            textBox8.UseSystemPasswordChar = true;
+            
+            
+           
+
+        }
+        private void Connection()
+        {
+            string myConnectionString;
+            myConnectionString = "server=34.65.166.38;port=3306;uid=root;" +
+                "pwd=1234;database=proje";
+            try
+            {
+                conn = new MySql.Data.MySqlClient.MySqlConnection(myConnectionString);
+                conn.Open();
+            }
+            catch (MySql.Data.MySqlClient.MySqlException ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
+        }
+        
+
+        
+
+        
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if(textBox4.Text.ToString() != textBox5.Text.ToString())
+            {
+                label10.ForeColor = Color.Red;
+                label10.Text = "Girilen şifreler aynı değil";
+                textBox4.Clear();
+                textBox5.Clear();
+                label10.Visible = true;
+            }
+            else// kayıt olma yeri 
+            {
+                try
+                {
+                    Connection();
+                    string sql = $"INSERT INTO kullanicilar (kullaniciAdi,sifre) values ('{kKullaniciAdi}','{kSifre}');";
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    textBoxTemizleKayit();
+                    MessageBox.Show("Kayıt Başarılı");
+                }
+                catch (MySql.Data.MySqlClient.MySqlException ex)
+                {
+                    if (ex.ToString().StartsWith("MySql.Data.MySqlClient.MySqlException (0x80004005): Duplicate entry")) {
+                        string message = "Kullanici Adı Daha Önce Alınmış";
+                        string title = "Hata";
+                        MessageBox.Show(message, title);
+                        textBoxTemizleKayit();
+                    }
+                    else
+                        MessageBox.Show(ex.Message);
+                }
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            //şifre değişikliği veri tabanında değiştirilecek
+            try
+            {
+                Connection();
+                string sql1 = $"Select * from kullanicilar WHERE kullaniciAdi = '{textBox6.Text.ToString()}' AND sifre = '{textBox7.Text.ToString()}';";
+                MySqlCommand cmd1 = new MySqlCommand(sql1, conn);
+                MySqlDataReader rdr1 = cmd1.ExecuteReader();
+                if(rdr1.Read() && textBox8.Text.Any()) {
+                rdr1.Close();
+                string sql = $"UPDATE kullanicilar SET sifre ='{textBox8.Text.ToString()}' WHERE kullaniciAdi = '{textBox6.Text.ToString()}' AND sifre = '{textBox7.Text.ToString()}';";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                MessageBox.Show("Sifre Değişikliği Başarılı");
+                textBoxTemizleKayit();
+                }
+                else if(!textBox8.Text.Any())
+                {
+                    MessageBox.Show("Yeni Şifre Boş Olamaz");
+                    textBoxTemizleKayit();
+                }
+                else { 
+                    MessageBox.Show("Kullanıcı Adı veya Şifre Hatalı");
+                    textBoxTemizleKayit();
+                }
+            }
+            catch (MySql.Data.MySqlClient.MySqlException ex)
+            {
+                textBoxTemizleKayit();
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                Connection();
+                string sql = $"Select * from kullanicilar WHERE kullaniciAdi = '{textBox1.Text.ToString()}' AND sifre = '{textBox2.Text.ToString()}';";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                Console.WriteLine("buradayim");
+                
+                
+                if (rdr.Read())
+                {
+                    girkullanici = textBox1.Text.ToString();
+                    girsifre = textBox2.Text.ToString();
+                    this.Hide();
+                    Form2 frm2 = new Form2();
+                    frm2.Show();
+                }
+                else
+                {
+                    label3.ForeColor = Color.Red;
+                    label3.Text = "Kullanıcı adı veya şifre yanlış";
+                    label3.Visible = true;
+                    textBoxTemizleKayit();
+                }
+                rdr.Close();
+            }
+            catch (MySql.Data.MySqlClient.MySqlException ex)
+            {
+                textBoxTemizleKayit();
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            kKullaniciAdi = textBox3.Text.ToString();
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            kSifre = textBox4.Text.ToString();
+        }
+
+        private void InitializeComponent()
+        {
+            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.label3 = new System.Windows.Forms.Label();
+            this.button1 = new System.Windows.Forms.Button();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.label10 = new System.Windows.Forms.Label();
+            this.button2 = new System.Windows.Forms.Button();
+            this.textBox5 = new System.Windows.Forms.TextBox();
+            this.textBox4 = new System.Windows.Forms.TextBox();
+            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.button3 = new System.Windows.Forms.Button();
+            this.textBox8 = new System.Windows.Forms.TextBox();
+            this.textBox7 = new System.Windows.Forms.TextBox();
+            this.textBox6 = new System.Windows.Forms.TextBox();
+            this.label9 = new System.Windows.Forms.Label();
+            this.label8 = new System.Windows.Forms.Label();
+            this.label7 = new System.Windows.Forms.Label();
+            this.tabControl1.SuspendLayout();
+            this.tabPage1.SuspendLayout();
+            this.tabPage2.SuspendLayout();
+            this.tabPage3.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // tabControl1
+            // 
+            this.tabControl1.Controls.Add(this.tabPage1);
+            this.tabControl1.Controls.Add(this.tabPage2);
+            this.tabControl1.Controls.Add(this.tabPage3);
+            this.tabControl1.Location = new System.Drawing.Point(12, 24);
+            this.tabControl1.Name = "tabControl1";
+            this.tabControl1.SelectedIndex = 0;
+            this.tabControl1.Size = new System.Drawing.Size(339, 225);
+            this.tabControl1.TabIndex = 0;
+            // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.label3);
+            this.tabPage1.Controls.Add(this.button1);
+            this.tabPage1.Controls.Add(this.textBox2);
+            this.tabPage1.Controls.Add(this.textBox1);
+            this.tabPage1.Controls.Add(this.label2);
+            this.tabPage1.Controls.Add(this.label1);
+            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(331, 199);
+            this.tabPage1.TabIndex = 0;
+            this.tabPage1.Text = "Giriş";
+            this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(179, 124);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(35, 13);
+            this.label3.TabIndex = 6;
+            this.label3.Text = "label3";
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(22, 119);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 4;
+            this.button1.Text = "Giriş";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_1);
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(89, 68);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(100, 20);
+            this.textBox2.TabIndex = 3;
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(89, 32);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 20);
+            this.textBox1.TabIndex = 2;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(19, 71);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(28, 13);
+            this.label2.TabIndex = 1;
+            this.label2.Text = "Şifre";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(19, 35);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(64, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Kullanıcı Adı";
+            // 
+            // tabPage2
+            // 
+            this.tabPage2.Controls.Add(this.label10);
+            this.tabPage2.Controls.Add(this.button2);
+            this.tabPage2.Controls.Add(this.textBox5);
+            this.tabPage2.Controls.Add(this.textBox4);
+            this.tabPage2.Controls.Add(this.textBox3);
+            this.tabPage2.Controls.Add(this.label6);
+            this.tabPage2.Controls.Add(this.label5);
+            this.tabPage2.Controls.Add(this.label4);
+            this.tabPage2.Location = new System.Drawing.Point(4, 22);
+            this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(331, 199);
+            this.tabPage2.TabIndex = 1;
+            this.tabPage2.Text = "Kayıt ol";
+            this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(206, 145);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(41, 13);
+            this.label10.TabIndex = 8;
+            this.label10.Text = "label10";
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(24, 145);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 6;
+            this.button2.Text = "Kayıt Ol";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // textBox5
+            // 
+            this.textBox5.Location = new System.Drawing.Point(91, 105);
+            this.textBox5.Name = "textBox5";
+            this.textBox5.Size = new System.Drawing.Size(100, 20);
+            this.textBox5.TabIndex = 5;
+            // 
+            // textBox4
+            // 
+            this.textBox4.Location = new System.Drawing.Point(91, 68);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(100, 20);
+            this.textBox4.TabIndex = 4;
+            this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
+            // 
+            // textBox3
+            // 
+            this.textBox3.Location = new System.Drawing.Point(91, 33);
+            this.textBox3.Name = "textBox3";
+            this.textBox3.Size = new System.Drawing.Size(100, 20);
+            this.textBox3.TabIndex = 3;
+            this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(21, 108);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(62, 13);
+            this.label6.TabIndex = 2;
+            this.label6.Text = "Tekrar Şifre";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(33, 71);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(28, 13);
+            this.label5.TabIndex = 1;
+            this.label5.Text = "Şifre";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(21, 36);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(64, 13);
+            this.label4.TabIndex = 0;
+            this.label4.Text = "Kullanıcı Adı";
+            // 
+            // tabPage3
+            // 
+            this.tabPage3.Controls.Add(this.button3);
+            this.tabPage3.Controls.Add(this.textBox8);
+            this.tabPage3.Controls.Add(this.textBox7);
+            this.tabPage3.Controls.Add(this.textBox6);
+            this.tabPage3.Controls.Add(this.label9);
+            this.tabPage3.Controls.Add(this.label8);
+            this.tabPage3.Controls.Add(this.label7);
+            this.tabPage3.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(331, 199);
+            this.tabPage3.TabIndex = 2;
+            this.tabPage3.Text = "Şifre Değiştir";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // button3
+            // 
+            this.button3.Location = new System.Drawing.Point(31, 148);
+            this.button3.Name = "button3";
+            this.button3.Size = new System.Drawing.Size(75, 23);
+            this.button3.TabIndex = 6;
+            this.button3.Text = "Değiştir";
+            this.button3.UseVisualStyleBackColor = true;
+            this.button3.Click += new System.EventHandler(this.button3_Click);
+            // 
+            // textBox8
+            // 
+            this.textBox8.Location = new System.Drawing.Point(115, 104);
+            this.textBox8.Name = "textBox8";
+            this.textBox8.Size = new System.Drawing.Size(100, 20);
+            this.textBox8.TabIndex = 5;
+            // 
+            // textBox7
+            // 
+            this.textBox7.Location = new System.Drawing.Point(115, 71);
+            this.textBox7.Name = "textBox7";
+            this.textBox7.Size = new System.Drawing.Size(100, 20);
+            this.textBox7.TabIndex = 4;
+            // 
+            // textBox6
+            // 
+            this.textBox6.Location = new System.Drawing.Point(115, 34);
+            this.textBox6.Name = "textBox6";
+            this.textBox6.Size = new System.Drawing.Size(100, 20);
+            this.textBox6.TabIndex = 3;
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(28, 107);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(52, 13);
+            this.label9.TabIndex = 2;
+            this.label9.Text = "Yeni Şifre";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(28, 71);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(28, 13);
+            this.label8.TabIndex = 1;
+            this.label8.Text = "Şifre";
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(28, 37);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(64, 13);
+            this.label7.TabIndex = 0;
+            this.label7.Text = "Kullanıcı Adı";
+            // 
+            // Form1
+            // 
+            this.ClientSize = new System.Drawing.Size(363, 261);
+            this.Controls.Add(this.tabControl1);
+            this.Name = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.tabControl1.ResumeLayout(false);
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
+            this.tabPage2.ResumeLayout(false);
+            this.tabPage2.PerformLayout();
+            this.tabPage3.ResumeLayout(false);
+            this.tabPage3.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Console.WriteLine("frm1 loada geldim");
+        }
+
+        private void textBoxTemizleKayit()
+        {
+            textBox1.Clear();
+            textBox2.Clear();
+            textBox4.Clear();
+            textBox3.Clear();
+            textBox5.Clear();
+            textBox6.Clear();
+            textBox7.Clear();
+            textBox8.Clear();
+        }
+    }
+}
+
+// -----------------> Form2.cs
+
+
+using MySql.Data.MySqlClient;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using GMap.NET;
+using GMap.NET.MapProviders;
+using GMap.NET.WindowsForms;
+using GMap.NET.WindowsForms.Markers;
+using System.Threading;
+
+namespace yazlab1._1
+{
+    public partial class Form2 : Form
+    {
+        public MySql.Data.MySqlClient.MySqlConnection conn;
+        public ThreadStart thread;
+        public Thread t;
+        public delegate void testDelegate();
+        public List<String> adresler;
+        public int silinecekID;
+        public GMapOverlay markers = new GMapOverlay("markers");
+        public Form2()
+        {
+            InitializeComponent();
+            tabloyuAyarla();
+            verileriGetir();
+        }
+        private void tabloyuAyarla()
+        {
+            dataGridView1.BackgroundColor = Color.White;
+            dataGridView1.RowHeadersVisible = false;
+        }
+        private void Connection()
+        {
+            string myConnectionString;
+            myConnectionString = "server=34.65.166.38;port=3306;uid=root;" +
+                "pwd=1234;database=proje";
+            try
+            {
+                conn = new MySql.Data.MySqlClient.MySqlConnection(myConnectionString);
+                conn.Open();
+            }
+            catch (MySql.Data.MySqlClient.MySqlException ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            adresler = new List<String>();
+
+        }
+
+        public void adresleriYukle()
+        {
+            Connection();
+            string select = "select MusteriLokasyon from kargolar WHERE isTeslimEdildi = 0";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            GeoCoderStatusCode statusCode;
+            GMapOverlay markers;
+            while (rdr.Read())
+            {
+                adresler.Add(rdr["MusteriLokasyon"].ToString());
+            }
+            conn.Close();
+            foreach(var i in adresler)
+            {   
+                var pointLatLng = GoogleMapProvider.Instance.GetPoint(i.Trim(), out statusCode);
+                if (statusCode == GeoCoderStatusCode.OK)
+                {
+                    double lat = (double)pointLatLng?.Lat;
+                    double lng = (double)pointLatLng?.Lng;
+
+                    PointLatLng point = new PointLatLng(lat, lng);
+                    GMapMarker marker;
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.red_pushpin);
+                    //Overlay ekle
+                    markers = new GMapOverlay("markers");
+                    markers.IsVisibile = false;
+                    //Markerlerı overlaya ekle
+                    markers.Markers.Add(marker);
+                    // haritayı doldur
+                    gMapControl1.Overlays.Add(markers);
+                    markers.IsVisibile = true;
+                    //Console.WriteLine("foreacdeyim");
+                }
+
+                
+            }
+            
+        }
+        private void kargoDagitimMerekeziYukle()
+        {
+            Connection();
+            string select = "select * from kargoSubesi";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            GeoCoderStatusCode statusCode;
+            GMapOverlay markers;
+            double lat=0, lng=0;
+            while (rdr.Read())
+            {
+                adresler.Add(rdr["Lokasyon"].ToString());
+                lat = double.Parse(rdr["Lat"].ToString());
+                lng = double.Parse(rdr["Lng"].ToString());
+            }
+            conn.Close();
+            foreach (var i in adresler)
+            {
+                var pointLatLng = GoogleMapProvider.Instance.GetPoint(i.Trim(), out statusCode);
+                if (statusCode == GeoCoderStatusCode.OK)
+                {
+                    PointLatLng point = new PointLatLng(lat, lng);
+                    
+                    GMapMarker marker;
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.blue_dot);
+                    //Overlay ekle
+                    markers = new GMapOverlay("markers");
+                    markers.IsVisibile = false;
+                    //Markerlerı overlaya ekle
+                    markers.Markers.Add(marker);
+                    // haritayı doldur
+                    gMapControl1.Overlays.Add(markers);
+                    markers.IsVisibile = true;
+                    //Console.WriteLine("foreacdeyim");
+                }
+
+
+            }
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
+        {
+            label5.Visible = false;
+            label5.ForeColor = Color.Red;
+
+            GMapProviders.GoogleMap.ApiKey = Apikey.Key;
+            label1.Text = Form1.girkullanici;// kullancı adını sag üste yazıyor
+            gMapControl1.MapProvider = GMapProviders.GoogleMap;
+            GMap.NET.GMaps.Instance.Mode = GMap.NET.AccessMode.ServerOnly;
+
+            gMapControl1.Position = new GMap.NET.PointLatLng(40.7641692, 29.9414999);
+            adresleriYukle();
+            kargoDagitimMerekeziYukle();
+
+        }
+       
+
+        private void gMapControl1_MouseClick(object sender, MouseEventArgs e)
+        {
+            
+
+
+            if(e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                richTextBox1.Clear();
+                double lat = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lat;
+                double lng = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lng;
+
+                textBox2.Text = lat.ToString();
+                textBox3.Text = lng.ToString();
+
+                PointLatLng point = new PointLatLng(lat, lng);
+
+                Connection();
+                GMapMarker marker;
+                if (checkBox1.Checked == true)
+                {
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.yellow_dot);
+                }
+                else
+                {
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.red_pushpin);
+                }
+                    
+                //Overlay ekle
+                GMapOverlay markers = new GMapOverlay("markers");
+                markers.IsVisibile = false;
+                //Markerlerı overlaya ekle
+                markers.Markers.Add(marker);
+                // haritayı doldur
+                gMapControl1.Overlays.Add(markers);
+                markers.IsVisibile = true;
+                var adress = GetAdress(point);
+                if (adress != null && checkBox1.Checked == false)
+                {
+                    if (textBox4.Text == "")
+                    {
+                        MessageBox.Show("Müşteri Adı Boş Olamaz");
+                        return;
+                    }
+                    richTextBox1.Text = adress[0];
+                    //clouda adresleri yükleme
+                    
+                    Connection();
+                    string sql = $"INSERT INTO kargolar (MusteriLokasyon,Lat,Lng,musteriAdi) values ('{richTextBox1.Text.ToString()}','{lat}','{lng}','{textBox4.Text}');";
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+                    
+                }
+                else if(adress != null && checkBox1.Checked == true)
+                {
+
+                    richTextBox1.Text = adress[0];
+                    string sql = $"UPDATE kargoSubesi SET Lokasyon='{richTextBox1.Text.ToString()}',Lat='{lat}',Lng='{lng}' WHERE SubeID=1;";
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+                    yenile();
+                }   
+                else
+                    richTextBox1.Text = "Adres bulunamadı";
+            }
+            verileriGetir();
+        }
+
+        private List<String> GetAdress(PointLatLng point)
+        {
+            List<Placemark> placemarks = null;
+            var statusCode = GMapProviders.GoogleMap.GetPlacemarks(point, out placemarks);
+            if(statusCode == GeoCoderStatusCode.OK && placemarks != null)
+            {
+                List<String> addresses = new List<String>(); 
+                foreach(var i in placemarks)
+                {
+                    addresses.Add(i.Address);
+                }
+                return addresses;
+            }
+            return null;
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            GeoCoderStatusCode statusCode;
+            var pointLatLng = GoogleMapProvider.Instance.GetPoint(richTextBox1.Text.Trim(), out statusCode);
+            if(statusCode == GeoCoderStatusCode.OK)
+            {   
+                //clouda yükleme
+                
+                Connection();
+                
+                textBox2.Text = pointLatLng?.Lat.ToString();
+                textBox3.Text = pointLatLng?.Lng.ToString();
+                
+                double lat = (double)pointLatLng?.Lat;
+                double lng = (double)pointLatLng?.Lng;
+
+
+                PointLatLng point = new PointLatLng(lat, lng);
+                GMapMarker marker;
+                if (checkBox1.Checked == true)
+                {
+                    //fixle
+                        string sql = $"UPDATE kargoSubesi SET Lokasyon='{richTextBox1.Text}',Lat='{lat}',Lng='{lng}' WHERE SubeID=1;";
+                        MySqlCommand cmd = new MySqlCommand(sql, conn);
+                        cmd.ExecuteNonQuery();
+                        conn.Close();
+                        marker = new GMarkerGoogle(point, GMarkerGoogleType.blue_dot);
+                        yenile();
+
+
+                }
+                else
+                {
+                    if (textBox4.Text == "")
+                    {
+                        MessageBox.Show("Müşteri Adı Boş Olamaz");
+                        return;
+                    }
+                    string sql = $"INSERT INTO kargolar (MusteriLokasyon,Lat,Lng,musteriAdi) values ('{richTextBox1.Text.ToString()}','{lat}','{lng}','{textBox4.Text}');";
+
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.red_pushpin);
+                }
+
+                //Overlay ekle
+                
+                markers.IsVisibile = false;
+                //Markerlerı overlaya ekle
+                markers.Markers.Add(marker);
+                // haritayı doldur
+                gMapControl1.Overlays.Add(markers);
+                gMapControl1.Position = new GMap.NET.PointLatLng(lat, lng);
+                markers.IsVisibile = true;
+                yenile();
+                verileriGetir();
+
+            }
+        }
+        private void yenile()
+        {
+            gMapControl1.Overlays.Clear();
+            adresler.Clear();
+            for (int i = 0; i < markers.Markers.Count; i++)
+                gMapControl1.Overlays.Clear();
+            kargoDagitimMerekeziYukle();
+            adresleriYukle();
+            gMapControl1.Zoom = -5;
+            gMapControl1.Zoom = 15;
+        }
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Connection();
+            string sql = $"DELETE FROM kargolar WHERE KargoID={Convert.ToInt32(textBox1.Text)} ;";
+
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+            yenile();
+            verileriGetir();
+        }
+
+        private void verileriGetir()
+        {
+            Connection();
+            string select = "select * from kargolar";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            DataTable dt = new DataTable();
+            dt.Load(rdr);
+            dataGridView1.DataSource = dt;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            verileriGetir();
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button3_Click_1(object sender, EventArgs e)
+        {
+            yenile();
+            verileriGetir();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            Connection();
+            double lat=-1, lng=-1;
+
+            lat = double.Parse(textBox2.Text.ToString());
+            lng = double.Parse(textBox3.Text.ToString());
+            
+            if(lat == -1 && lng == -1)
+            {
+                label5.Visible = true;
+                return;
+            }
+
+            PointLatLng point = new PointLatLng(lat, lng);
+            GMapMarker marker;
+            if (checkBox1.Checked == true)
+            {
+                marker = new GMarkerGoogle(point, GMarkerGoogleType.yellow_dot);
+            }
+            else
+            {
+                marker = new GMarkerGoogle(point, GMarkerGoogleType.red_pushpin);
+            }
+
+            //Overlay ekle
+            GMapOverlay markers = new GMapOverlay("markers");
+            markers.IsVisibile = false;
+            //Markerlerı overlaya ekle
+            markers.Markers.Add(marker);
+            // haritayı doldur
+            gMapControl1.Overlays.Add(markers);
+            markers.IsVisibile = true;
+            var adress = GetAdress(point);
+            
+                
+            if (adress != null && checkBox1.Checked == false)
+            {
+
+                richTextBox1.Text = adress[0];
+                //clouda adresleri yükleme
+                if (textBox4.Text == "")
+                {
+                    MessageBox.Show("Müşteri Adı Boş Olamaz");
+                    return;
+                }
+                Connection();
+                //string sql = $"INSERT INTO kargolar (MusteriLokasyon) values ('{adress[0]}');";
+                string sql = $"INSERT INTO kargolar (MusteriLokasyon,Lat,Lng,musteriAdi) values ('{richTextBox1.Text.ToString()}','{lat}','{lng}','{textBox4.Text}');";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                conn.Close();
+                yenile();
+            }
+            else if (adress != null && checkBox1.Checked == true)
+            {
+                richTextBox1.Text = adress[0];
+                string sql = $"UPDATE kargoSubesi SET Lokasyon='{richTextBox1.Text.ToString()}',Lat='{lat}',Lng='{lng}' WHERE SubeID=1;";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                conn.Close();
+                yenile();
+            }
+            else
+                richTextBox1.Text = "Adres bulunamadı";
+
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+    }
+}
+
+
+// ----------------> Form3.cs
+
+
+
+using GMap.NET;
+using GMap.NET.MapProviders;
+using GMap.NET.WindowsForms;
+using GMap.NET.WindowsForms.Markers;
+using MySql.Data.MySqlClient;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace yazlab1._1
+{
+    public partial class Form3 : Form
+    {
+        public MySql.Data.MySqlClient.MySqlConnection conn;
+        public List<String> adresler;
+        public List<PointLatLng> points;
+        public List<List<float>> distances;
+        public IList<IList<int>> tumPermutasyonlar;
+        private int indxPerm;
+        public PointLatLng subeLok;
+        public PointLatLng aracLok;
+        public GMapOverlay yollar;
+        private int aracIndx;
+        private int aracharketIndx;
+        private GMapOverlay markersArac;
+        GMapOverlay markers;
+        public Form3()
+        {
+            InitializeComponent();
+            adresler = new List<string>();
+            points = new List<PointLatLng>();
+            tumPermutasyonlar = new List<IList<int>>();
+            subeLok = new PointLatLng();
+            aracLok = new PointLatLng();
+            yolBulma();
+            
+            
+           
+        }
+        static IList<IList<int>> Permute(int[] nums)
+        {
+            var list = new List<IList<int>>();
+            return DoPermute(nums, 0, nums.Length - 1, list);
+        }
+
+        static IList<IList<int>> DoPermute(int[] nums, int start, int end, IList<IList<int>> list)
+        {
+            if (start == end)
+            {
+                
+                list.Add(new List<int>(nums));
+            }
+            else
+            {
+                for (var i = start; i <= end; i++)
+                {
+                    Swap(ref nums[start], ref nums[i]);
+                    DoPermute(nums, start + 1, end, list);
+                    Swap(ref nums[start], ref nums[i]);
+                }
+            }
+
+            return list;
+        }
+
+        static void Swap(ref int a, ref int b)
+        {
+            var temp = a;
+            a = b;
+            b = temp;
+        }
+        private void print()
+        {
+            foreach (var list in distances)
+            {
+                foreach (var element in list)
+                {
+                    Console.Write(element + "  ");
+                }
+                Console.WriteLine();
+            }
+        }
+
+        private void yolBulma()
+        {
+
+            Connection();
+            // tüm noktaları aldım pointste tutuyorum
+            string sql = "select * from arac";//kargo subesiydi araca donustu!
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                double lat = double.Parse(rdr["Lat"].ToString());
+                double lng = double.Parse(rdr["Lng"].ToString());
+                points.Add(new PointLatLng(lat, lng));
+            }
+            conn.Close();
+            Connection();
+            sql = "select * from kargolar Where isTeslimEdildi = 0";
+            cmd = new MySqlCommand(sql, conn);
+            rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                double lat = double.Parse(rdr["Lat"].ToString());
+                double lng = double.Parse(rdr["Lng"].ToString());
+                points.Add(new PointLatLng(lat, lng));
+            }
+            conn.Close();
+            /*
+            for (int i = 0; i < points.Count(); i++)
+            {
+                Console.WriteLine("points   " + points[i].Lat.ToString() + " " + points[i].Lng.ToString());
+            }
+            */
+            //kargo subesinden çıkacak kargo aracı o yüzden orası ilk node olacak 
+            // tüm noktalar arasındaki mesafeler bulundu
+            
+            //Console.WriteLine("hadeeeee   " + points.Count());
+            
+            distances = new List<List<float>>();
+            
+
+
+            GMapProviders.GoogleMap.ApiKey = Apikey.Key;
+
+
+
+            for (int i = 0; i < points.Count(); i++)
+            {
+                
+                List<float> tmp = new List<float>();
+                for (int j = 0; j < points.Count; j++)
+                {
+                    var route = GoogleMapProvider.Instance.GetRoute(points[i], points[j], false, false, 12);// sondaki parametre zoom degeri 
+                    tmp.Add(float.Parse(route.Distance.ToString()));
+
+                }
+                distances.Add(new List<float>(tmp));
+            }
+            //print();
+
+            //önce tüm permutasyonları bulmamımız lazım kaç tane node varsa orada distances listini kullanarak kısa yolu buluruz
+            // tüm permutosyanlardan en kısa olanı bizim yolumuzdur
+            int pointSayisi = points.Count();
+            int[] arr = new int[pointSayisi];
+            for (int i = 0; i < pointSayisi; i++)
+            {
+                arr[i] = i;
+            }
+            tumPermutasyonlar = Permute(arr);
+            float enkisaYol = float.MaxValue;
+            float tmpSum = 0;
+            indxPerm = -1;// en kisa yolu tutan permin indexi
+
+            for (int i = 0; i < tumPermutasyonlar.Count; i++)
+            {
+                tmpSum = 0;
+                for (int j = 0; j < tumPermutasyonlar[i].Count - 1; j++)
+                {
+                    // kargo şubesinden başlamalı yolculuğa ordan başlamadıysa direkt eliyoruz
+                    if (tumPermutasyonlar[i][0] != 0)
+                    {
+                        tmpSum = 0;
+                        break;
+                    }
+                    else
+                    {
+                        tmpSum += distances[tumPermutasyonlar[i][j]][tumPermutasyonlar[i][j + 1]];// uzaklıkları topladım
+                    }
+
+                    if (j == tumPermutasyonlar[i].Count - 2)
+                    {
+                        if (tmpSum < enkisaYol)
+                        {
+                            enkisaYol = tmpSum;
+                            indxPerm = i;
+                        }
+                    }
+
+                }
+
+
+            }
+            /*
+            Console.WriteLine("en kisa yol = "+enkisaYol);
+            foreach (var i in tumPermutasyonlar[indxPerm])
+            {
+                Console.Write(i+" ");
+            }
+            
+            Console.WriteLine("---------- ");
+            */
+            if(indxPerm != -1)
+                ciz(tumPermutasyonlar[indxPerm].ToList());
+            else
+            {
+                //MessageBox.Show("Dağıtılacak kargo kalmadı","Kargo Dağıtım Sistemi",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            }
+                
+
+        }
+        // yol bulma için
+        private void polygonCiz()
+        {
+
+        }
+
+        private void ciz(List<int> kisaYol)
+        {
+            GoogleMapProvider.Instance.ApiKey = Apikey.Key;
+            yollar = new GMapOverlay("yollar");
+            for (int i = 0; i < kisaYol.Count - 1; i++)
+            {
+                var route = GoogleMapProvider.Instance.GetRoute(points[kisaYol[i]], points[kisaYol[i + 1]], false, false, 12);
+                var r = new GMapRoute(route.Points, "My route");
+                if (r.Instructions.Count == 0)
+                {
+                    //Console.WriteLine("boş");
+                }
+                
+                yollar.Routes.Add(r);
+                gMapControl1.Overlays.Add(yollar);
+            }
+            
+
+        }
+        private void Connection()
+        {
+            string myConnectionString;
+            myConnectionString = "server=34.65.166.38;port=3306;uid=root;" +
+                "pwd=1234;database=proje";
+            try
+            {
+                conn = new MySql.Data.MySqlClient.MySqlConnection(myConnectionString);
+                conn.Open();
+            }
+            catch (MySql.Data.MySqlClient.MySqlException ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            adresler = new List<String>();
+
+        }
+        public void adresleriYukle()
+        {
+            Connection();
+            string select = "select MusteriLokasyon from kargolar Where isTeslimEdildi = 0";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            GeoCoderStatusCode statusCode;
+            
+            while (rdr.Read())
+            {
+                adresler.Add(rdr["MusteriLokasyon"].ToString());
+            }
+            conn.Close();
+            foreach (var i in adresler)
+            {
+                var pointLatLng = GoogleMapProvider.Instance.GetPoint(i.Trim(), out statusCode);
+                if (statusCode == GeoCoderStatusCode.OK)
+                {
+                    double lat = (double)pointLatLng?.Lat;
+                    double lng = (double)pointLatLng?.Lng;
+
+                    PointLatLng point = new PointLatLng(lat, lng);
+                    GMapMarker marker;
+                    
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.red_pushpin);
+                    //Overlay ekle
+                    markers = new GMapOverlay("markers");
+                    markers.IsVisibile = false;
+                    //Markerlerı overlaya ekle
+                    markers.Markers.Add(marker);
+                    // haritayı doldur
+                    gMapControl1.Overlays.Add(markers);
+                    markers.IsVisibile = true;
+                    //Console.WriteLine("foreacdeyim");
+                }
+
+
+            }
+
+        }
+        private void kargoDagitimMerekeziYukle()
+        {
+            Connection();
+            string select = "select * from kargoSubesi";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            GeoCoderStatusCode statusCode;
+
+            double lat = 0, lng = 0;
+            while (rdr.Read())
+            {
+                adresler.Add(rdr["Lokasyon"].ToString());
+                lat = double.Parse(rdr["Lat"].ToString());
+                lng = double.Parse(rdr["Lng"].ToString());
+            }
+            conn.Close();
+            foreach (var i in adresler)
+            {   
+                
+                var pointLatLng = GoogleMapProvider.Instance.GetPoint(i.Trim(), out statusCode);
+                if (statusCode == GeoCoderStatusCode.OK)
+                {
+                    
+                    PointLatLng point = new PointLatLng(lat, lng);
+                    subeLok = new PointLatLng(lat, lng);
+                    GMapMarker marker;
+                    
+                    marker = new GMarkerGoogle(point, GMarkerGoogleType.blue_dot);
+                    //Overlay ekle
+                    markers = new GMapOverlay("markers");
+                    markers.IsVisibile = false;
+                    //Markerlerı overlaya ekle
+                    markers.Markers.Add(marker);
+                    // haritayı doldur
+                    gMapControl1.Overlays.Add(markers);
+                    markers.IsVisibile = true;
+                    //Console.WriteLine("foreacdeyim");
+                }
+
+
+            }
+        }
+        private void gMapControl1_Load(object sender, EventArgs e)
+        {
+            
+            gMapControl1.MapProvider = GMapProviders.GoogleMap;
+            GMap.NET.GMaps.Instance.Mode = GMap.NET.AccessMode.ServerOnly;
+            gMapControl1.Position = new GMap.NET.PointLatLng(40.7641692, 29.9414999);
+            
+            adresleriYukle();
+            kargoDagitimMerekeziYukle();
+            aracHareket();
+
+        }
+
+        // aracı subeye götüren method
+        private void aracSubeye()
+        {
+            aracLok = subeLok;
+            aracIndx = 0;
+            aracharketIndx = 0;
+            Connection();
+            string sql = $"UPDATE arac SET hareketIndex='{aracharketIndx}' WHERE idarac=1;";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+            /*
+            Console.WriteLine("lat = "+aracLok.Lat.ToString()+"lng = "+aracLok.Lng.ToString());
+            Console.WriteLine("lat = " + subeLok.Lat.ToString() + "lng = " + subeLok.Lng.ToString());
+            */
+
+            Connection();
+
+            //select arac sorgusu atılacak table olusturulacak
+            sql = $"UPDATE arac SET Lat='{aracLok.Lat.ToString()}',Lng='{aracLok.Lng.ToString()}' WHERE idarac=1;";
+            cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+
+
+            // tabledan arac pozisyonu alıncak arac pozisyonu ilk başta ne olmalı kargo subesi olabilir
+
+            GMapProviders.GoogleMap.ApiKey = Apikey.Key;
+            GMapOverlay markersArac;
+            GMapMarker markerArac;
+
+
+            
+            
+            markerArac = new GMarkerGoogle(aracLok, GMarkerGoogleType.arrow);
+            //Overlay ekle
+            markersArac = new GMapOverlay("markersArac");
+            markersArac.IsVisibile = true;
+            //Markerlerı overlaya ekle
+            markersArac.Markers.Add(markerArac);
+            // haritayı doldur
+            gMapControl1.Overlays.Add(markersArac);
+            //Console.WriteLine("arac subedeyim");
+
+        }
+        // aracı hareket ettiren kod bunu timer tickte çağıracağız
+
+        // aracın pozisyonunu değiştiren method
+        private void aracIlerle()
+        {
+            
+            // arachareketindxi clouddan alıyor
+            Connection();
+            string sql = "select * from arac";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                aracharketIndx = 0;
+            }
+            conn.Close();
+
+            aracharketIndx++;
+            
+
+
+            //Console.WriteLine("arachareketIndx == "+aracharketIndx);
+            //Console.WriteLine(tumPermutasyonlar[indxPerm].Count);
+            //burada kargo bitince hata verdi dizin bir şeyler dışında faalan!!!
+            //Console.WriteLine("indxperm =="+indxPerm);
+            if(indxPerm != -1)
+            {
+                if (aracharketIndx < tumPermutasyonlar[indxPerm].Count)
+                {
+                    aracIndx = tumPermutasyonlar[indxPerm][aracharketIndx];
+                }
+                else
+                {
+                    aracharketIndx = 0;
+                    aracIndx = tumPermutasyonlar[indxPerm][aracharketIndx];
+                }
+            }
+            else
+            {
+                aracSubeye();
+                return;
+                
+            }
+                
+
+
+            
+            //clodu güncelliyor
+            Connection();
+            sql = $"UPDATE arac SET Lat='{points[aracIndx].Lat.ToString()}',Lng='{points[aracIndx].Lng.ToString()}',hareketIndex='{aracharketIndx}' WHERE idarac=1;";
+            cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+            
+            
+            
+            Connection();
+            sql = $"SELECT * from kargolar WHERE Lat='{points[aracIndx].Lat.ToString()}' And Lng='{points[aracIndx].Lng.ToString()}'";
+            cmd = new MySqlCommand(sql, conn);
+            rdr = cmd.ExecuteReader();
+            int kargoID = 0;
+            while (rdr.Read())
+            {
+                kargoID = int.Parse(rdr["KargoID"].ToString());
+            }
+            conn.Close();
+            
+            Connection();
+            sql = $"UPDATE kargolar SET isTeslimEdildi=1 WHERE KargoID={kargoID};";
+            cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+            
+            // görüntüyü güncelliyor
+            markersArac.Clear();
+            GMapMarker markerArac;
+            PointLatLng point = new PointLatLng(points[aracIndx].Lat, points[aracIndx].Lng);
+           
+            markerArac = new GMarkerGoogle(point, GMarkerGoogleType.arrow);
+            //Overlay ekle
+            markersArac = new GMapOverlay("markers");
+            markersArac.IsVisibile = false;
+            //Markerlerı overlaya ekle
+            markersArac.Markers.Add(markerArac);
+            // haritayı doldur
+            gMapControl1.Overlays.Add(markersArac);
+            markersArac.IsVisibile = true;
+
+
+
+           
+        }
+        private void aracHareket()//Markerın pozisyonunu okuyup haritada görsel günceller 
+        {
+            
+            
+            Connection();
+            float lat = 0, lng = 0;
+            //select arac sorgusu atılacak table olusturulacak
+            // database yeni konum eklenecek
+            //string update = "UPDATE arac ";
+            string select = "select * from arac";
+            MySqlCommand cmd = new MySqlCommand(select, conn);
+            MySqlDataReader rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                lat = float.Parse(rdr["Lat"].ToString());
+                lng = float.Parse(rdr["Lng"].ToString());
+            }
+                
+            // tabledan arac pozisyonu alıncak arac pozisyonu ilk başta ne olmalı kargo subesi olabilir
+            GMapProviders.GoogleMap.ApiKey = Apikey.Key;
+            GMapMarker markerArac;
+
+
+            PointLatLng point = new PointLatLng(lat,lng);
+            
+            markerArac = new GMarkerGoogle(point, GMarkerGoogleType.arrow);
+            //Overlay ekle
+            markersArac = new GMapOverlay("markers");
+            markersArac.IsVisibile = false;
+            //Markerlerı overlaya ekle
+            markersArac.Markers.Add(markerArac);
+            // haritayı doldur
+            gMapControl1.Overlays.Add(markersArac);
+            markersArac.IsVisibile = true;
+            conn.Close();
+        }
+        
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            //Console.WriteLine("tik tak");
+            adresler.Clear();
+            points.Clear();
+            tumPermutasyonlar.Clear();
+            for (int i = 0; i < markers.Markers.Count; i++)
+                gMapControl1.Overlays.Clear();
+            kargoDagitimMerekeziYukle();
+            adresleriYukle();
+            yolBulma();
+            aracIlerle();
+            aracHareket();
+
+            gMapControl1.Zoom = -5;
+            gMapControl1.Zoom = 13;
+            
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            timer1.Stop();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            timer1.Start();
+        }
+    }
+}
+
+
+// ---------------------->     Form2.Designer
+
+
+namespace yazlab1._1
+{
+    partial class Form2
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            this.label1 = new System.Windows.Forms.Label();
+            this.splitter1 = new System.Windows.Forms.Splitter();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            this.gMapControl1 = new GMap.NET.WindowsForms.GMapControl();
+            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.button1 = new System.Windows.Forms.Button();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.button2 = new System.Windows.Forms.Button();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.button3 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
+            this.label5 = new System.Windows.Forms.Label();
+            this.textBox4 = new System.Windows.Forms.TextBox();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.label6 = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            this.SuspendLayout();
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(892, 11);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(44, 16);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "label1";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
+            // splitter1
+            // 
+            this.splitter1.Location = new System.Drawing.Point(0, 0);
+            this.splitter1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.splitter1.Name = "splitter1";
+            this.splitter1.Size = new System.Drawing.Size(453, 890);
+            this.splitter1.TabIndex = 1;
+            this.splitter1.TabStop = false;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(45, 43);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(43, 16);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "Adres";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(16, 705);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(25, 16);
+            this.label3.TabIndex = 3;
+            this.label3.Text = "Lat";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(235, 705);
+            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(29, 16);
+            this.label4.TabIndex = 4;
+            this.label4.Text = "Lng";
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(71, 702);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(141, 22);
+            this.textBox2.TabIndex = 6;
+            this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
+            // 
+            // textBox3
+            // 
+            this.textBox3.Location = new System.Drawing.Point(276, 702);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox3.Name = "textBox3";
+            this.textBox3.Size = new System.Drawing.Size(149, 22);
+            this.textBox3.TabIndex = 7;
+            // 
+            // gMapControl1
+            // 
+            this.gMapControl1.Bearing = 0F;
+            this.gMapControl1.CanDragMap = true;
+            this.gMapControl1.EmptyTileColor = System.Drawing.Color.Navy;
+            this.gMapControl1.GrayScaleMode = false;
+            this.gMapControl1.HelperLineOption = GMap.NET.WindowsForms.HelperLineOptions.DontShow;
+            this.gMapControl1.LevelsKeepInMemory = 5;
+            this.gMapControl1.Location = new System.Drawing.Point(461, 62);
+            this.gMapControl1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.gMapControl1.MarkersEnabled = true;
+            this.gMapControl1.MaxZoom = 18;
+            this.gMapControl1.MinZoom = 2;
+            this.gMapControl1.MouseWheelZoomEnabled = true;
+            this.gMapControl1.MouseWheelZoomType = GMap.NET.MouseWheelZoomType.MousePositionAndCenter;
+            this.gMapControl1.Name = "gMapControl1";
+            this.gMapControl1.NegativeMode = false;
+            this.gMapControl1.PolygonsEnabled = true;
+            this.gMapControl1.RetryLoadTile = 0;
+            this.gMapControl1.RoutesEnabled = true;
+            this.gMapControl1.ScaleMode = GMap.NET.WindowsForms.ScaleModes.Integer;
+            this.gMapControl1.SelectedAreaFillColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(65)))), ((int)(((byte)(105)))), ((int)(((byte)(225)))));
+            this.gMapControl1.ShowTileGridLines = false;
+            this.gMapControl1.Size = new System.Drawing.Size(937, 794);
+            this.gMapControl1.TabIndex = 8;
+            this.gMapControl1.Zoom = 12D;
+            this.gMapControl1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gMapControl1_MouseClick);
+            // 
+            // richTextBox1
+            // 
+            this.richTextBox1.Location = new System.Drawing.Point(99, 39);
+            this.richTextBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.richTextBox1.Name = "richTextBox1";
+            this.richTextBox1.Size = new System.Drawing.Size(291, 117);
+            this.richTextBox1.TabIndex = 9;
+            this.richTextBox1.Text = "";
+            this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(99, 185);
+            this.button1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(100, 28);
+            this.button1.TabIndex = 10;
+            this.button1.Text = "Ekle";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(48, 222);
+            this.checkBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(164, 20);
+            this.checkBox1.TabIndex = 12;
+            this.checkBox1.Text = "Kargo Dağıtım Merkezi";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(19, 655);
+            this.button2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(100, 28);
+            this.button2.TabIndex = 14;
+            this.button2.Text = "Kargo Sil(ID)";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(139, 661);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 22);
+            this.textBox1.TabIndex = 15;
+            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            // 
+            // dataGridView1
+            // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.AllowUserToResizeRows = false;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(19, 330);
+            this.dataGridView1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dataGridView1.MultiSelect = false;
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.RowHeadersWidth = 51;
+            this.dataGridView1.RowTemplate.Height = 24;
+            this.dataGridView1.Size = new System.Drawing.Size(405, 318);
+            this.dataGridView1.TabIndex = 17;
+            this.dataGridView1.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentClick);
+            // 
+            // button3
+            // 
+            this.button3.Location = new System.Drawing.Point(189, 272);
+            this.button3.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button3.Name = "button3";
+            this.button3.Size = new System.Drawing.Size(75, 23);
+            this.button3.TabIndex = 18;
+            this.button3.Text = "Yenile";
+            this.button3.UseVisualStyleBackColor = true;
+            this.button3.Click += new System.EventHandler(this.button3_Click_1);
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(20, 762);
+            this.button4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(99, 28);
+            this.button4.TabIndex = 19;
+            this.button4.Text = "Ekle";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(167, 768);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(44, 16);
+            this.label5.TabIndex = 20;
+            this.label5.Text = "label5";
+            // 
+            // textBox4
+            // 
+            this.textBox4.Location = new System.Drawing.Point(290, 188);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(100, 22);
+            this.textBox4.TabIndex = 21;
+            this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(306, 213);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(73, 16);
+            this.label6.TabIndex = 23;
+            this.label6.Text = "Muşteri Adı";
+            this.label6.Click += new System.EventHandler(this.label6_Click);
+            // 
+            // Form2
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1415, 890);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.textBox4);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.button4);
+            this.Controls.Add(this.button3);
+            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.button2);
+            this.Controls.Add(this.checkBox1);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.richTextBox1);
+            this.Controls.Add(this.gMapControl1);
+            this.Controls.Add(this.textBox3);
+            this.Controls.Add(this.textBox2);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.splitter1);
+            this.Controls.Add(this.label1);
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Name = "Form2";
+            this.Text = "Form2";
+            this.Load += new System.EventHandler(this.Form2_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Splitter splitter1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox textBox3;
+        private System.ComponentModel.BackgroundWorker backgroundWorker1;
+        private GMap.NET.WindowsForms.GMapControl gMapControl1;
+        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox textBox4;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.Label label6;
+    }
+}
+
+
+// ------------> Form3.Designer.cs
+
+
+namespace yazlab1._1
+{
+    partial class Form3
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            this.gMapControl1 = new GMap.NET.WindowsForms.GMapControl();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.button1 = new System.Windows.Forms.Button();
+            this.button2 = new System.Windows.Forms.Button();
+            this.SuspendLayout();
+            // 
+            // gMapControl1
+            // 
+            this.gMapControl1.Bearing = 0F;
+            this.gMapControl1.CanDragMap = true;
+            this.gMapControl1.EmptyTileColor = System.Drawing.Color.Navy;
+            this.gMapControl1.GrayScaleMode = false;
+            this.gMapControl1.HelperLineOption = GMap.NET.WindowsForms.HelperLineOptions.DontShow;
+            this.gMapControl1.LevelsKeepInMemory = 5;
+            this.gMapControl1.Location = new System.Drawing.Point(12, 12);
+            this.gMapControl1.MarkersEnabled = true;
+            this.gMapControl1.MaxZoom = 18;
+            this.gMapControl1.MinZoom = 2;
+            this.gMapControl1.MouseWheelZoomEnabled = true;
+            this.gMapControl1.MouseWheelZoomType = GMap.NET.MouseWheelZoomType.MousePositionAndCenter;
+            this.gMapControl1.Name = "gMapControl1";
+            this.gMapControl1.NegativeMode = false;
+            this.gMapControl1.PolygonsEnabled = true;
+            this.gMapControl1.RetryLoadTile = 0;
+            this.gMapControl1.RoutesEnabled = true;
+            this.gMapControl1.ScaleMode = GMap.NET.WindowsForms.ScaleModes.Integer;
+            this.gMapControl1.SelectedAreaFillColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(65)))), ((int)(((byte)(105)))), ((int)(((byte)(225)))));
+            this.gMapControl1.ShowTileGridLines = false;
+            this.gMapControl1.Size = new System.Drawing.Size(1124, 777);
+            this.gMapControl1.TabIndex = 0;
+            this.gMapControl1.Zoom = 12D;
+            this.gMapControl1.Load += new System.EventHandler(this.gMapControl1_Load);
+            // 
+            // timer1
+            // 
+            this.timer1.Enabled = true;
+            this.timer1.Interval = 8000;
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(999, 24);
+            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(118, 19);
+            this.button1.TabIndex = 1;
+            this.button1.Text = "Dağıtımı durdur";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(999, 59);
+            this.button2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(118, 19);
+            this.button2.TabIndex = 2;
+            this.button2.Text = "Dağıtıma devam et";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // Form3
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1148, 801);
+            this.Controls.Add(this.button2);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.gMapControl1);
+            this.Name = "Form3";
+            this.Text = "Form3";
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private GMap.NET.WindowsForms.GMapControl gMapControl1;
+        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button button2;
+    }
+}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,867 @@
+//  proje1b/App_Start/RouteConfig.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using System.Web.Routing;
+
+namespace proje1b
+{
+    public class RouteConfig
+    {
+        public static void RegisterRoutes(RouteCollection routes)
+        {
+            routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+
+            routes.MapRoute(
+                name: "Default",
+                url: "{controller}/{action}/{id}",
+                defaults: new { controller = "Home", action = "Login", id = UrlParameter.Optional }
+            );
+        }
+    }
+}
+
+// proje1b/App_Start/BundleConfig.cs
+
+using System.Web;
+using System.Web.Optimization;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using NetMQ;
+using NetMQ.Sockets;
+using System.Threading;
+using System;
+
+namespace proje1b
+{
+    public class BundleConfig
+    {
+        // For more information on bundling, visit https://go.microsoft.com/fwlink/?LinkId=301862
+        public static void RegisterBundles(BundleCollection bundles)
+        {
+            bundles.Add(new ScriptBundle("~/bundles/jquery").Include(
+                        "~/Scripts/jquery-{version}.js"));
+
+            bundles.Add(new ScriptBundle("~/bundles/jqueryval").Include(
+                        "~/Scripts/jquery.validate*"));
+
+            // Use the development version of Modernizr to develop with and learn from. Then, when you're
+            // ready for production, use the build tool at https://modernizr.com to pick only the tests you need.
+            bundles.Add(new ScriptBundle("~/bundles/modernizr").Include(
+                        "~/Scripts/modernizr-*"));
+
+            bundles.Add(new ScriptBundle("~/bundles/bootstrap").Include(
+                      "~/Scripts/bootstrap.js"));
+
+            bundles.Add(new StyleBundle("~/Content/css").Include(
+                      "~/Content/bootstrap.css",
+                      "~/Content/site.css"));
+            //Gerekirse aç
+            Thread listenerThread = new Thread(Listener);
+            listenerThread.Start();
+            void Listener()
+            {
+
+                using (var server = new ResponseSocket())
+                {
+
+                    server.Bind("tcp://*:5556");
+                    while (true)
+                    {
+                        var msg = server.ReceiveFrameString();
+                        var settings = MongoClientSettings.FromConnectionString("mongodb+srv://seqhilla:Ananen123@taksi.bcup5.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
+                        var client = new MongoClient(settings);
+                        var database = client.GetDatabase("taksi");
+                        var arabalar = database.GetCollection<BsonDocument>("arabalar3");
+                        string[] yuklenecek = msg.Split(' ');
+                        DateTime date = DateTime.Parse(yuklenecek[0] + " " + yuklenecek[1]);
+                        var doc = new BsonDocument
+                    {
+                        {"date",date},
+                        {"lat", yuklenecek[2]},
+                        {"long", yuklenecek[3]},
+                        {"aracid", yuklenecek[4]}
+                    };
+                        arabalar.InsertOne(doc);
+                        System.Diagnostics.Debug.WriteLine("From Client: " + msg.ToString());
+                        server.SendFrame(msg + " Onaylandı");
+                    }
+                }
+            }
+        }
+    }
+}
+
+// proje1b/Controllers/HaritaController.cs
+
+using MongoDB.Driver;
+using proje1b.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using MongoDB.Driver.Linq;
+using MySql.Data.MySqlClient;
+using MongoDB.Bson;
+
+namespace proje1b.Controllers
+{
+    public class HaritaController : Controller
+    {
+        private IMongoCollection<Araba> _collection;
+        private static string kullanici;// düzeltmeye çalış
+        private static DateTime tempTime = DateTime.Now;
+        private static DateTime Tarih = tempTime.AddMinutes(-30);
+        private static string b1saat;
+        private static string b2saat;
+        private static string arabaId = "secilmedi";
+        private static double b3saat = 0;
+
+
+        /*
+        public HaritaController(IMongoClient client)
+        {   
+
+
+            var database = client.GetDatabase("taksi");
+            _collection = database.GetCollection<Araba>("arabalar");
+        }
+        */
+        // GET: Harita
+        [Authorize]
+        [HttpGet]
+        public ActionResult Index(string kullaniciAdi)
+        {
+            ViewBag.kullaniciAdi = kullaniciAdi;
+            kullanici = kullaniciAdi;
+            return View();
+        }
+        [Authorize]
+        [HttpPost]
+        public ActionResult Index(DateTime BaslangicTarihi, string baslangicSaat, string bitisSaat, string secilenarabaID)
+        {
+            Tarih = BaslangicTarihi;
+
+            b1saat = baslangicSaat;
+            double dsaat = Convert.ToDouble(b1saat);
+            b2saat = bitisSaat;
+            double d2saat;
+            if (b2saat == "")
+            {
+                b2saat = b1saat;
+                d2saat = Convert.ToDouble(b2saat);
+                d2saat = d2saat + 1;
+            }
+            else
+            {
+                d2saat = Convert.ToDouble(b2saat);
+            }
+
+            arabaId = secilenarabaID;
+            b3saat = d2saat - dsaat;
+            Tarih = Tarih.AddHours(dsaat);
+            return View();
+        }
+        [Authorize]
+        public JsonResult HaritaIndex()
+        {
+
+            string connStr = "server=localhost;user=root;database=taksi;port=3306;password=password";
+            MySqlConnection conn = new MySqlConnection(connStr);
+            string[] araclar = { "a", "b" };
+            conn.Open();
+            //string kullanici5 = "kullanici1";
+            try
+            {
+                string sql = $"select araclar from Kullanicilar WHERE kullaniciAdi = '{kullanici}'";//buraya kullanici gelecek
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                if (rdr.Read())
+                {
+                    string str = rdr["araclar"].ToString();
+                    araclar = str.Split(',');
+                    rdr.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+            }
+
+            conn.Close();
+            var client = new MongoClient("mongodb+srv://seqhilla:Ananen123@taksi.bcup5.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
+            var database = client.GetDatabase("taksi");
+            _collection = database.GetCollection<Araba>("arabalar3");
+            if (arabaId == "secilmedi")
+            {
+                var result2 = _collection.AsQueryable<Araba>().
+                Where(c => (c.ArabaID == araclar[0] || c.ArabaID == araclar[1]) && (c.Date > Tarih && c.Date < DateTime.Now)).
+                Select(c => new { c.Lat, c.Long, c.ArabaID });
+                return Json(result2, JsonRequestBehavior.AllowGet);
+            }
+            else if (arabaId == "")
+            {
+                DateTime tmptime = Tarih;
+                double doublesaat = Convert.ToDouble(b2saat);
+                tmptime = tmptime.AddHours(b3saat);
+                var result2 = _collection.AsQueryable<Araba>().
+                Where(c => (c.ArabaID == araclar[0] || c.ArabaID == araclar[1]) && (c.Date > Tarih && c.Date < tmptime)).
+                Select(c => new { c.Lat, c.Long, c.ArabaID });
+                return Json(result2, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                DateTime tmptime = Tarih;
+                double doublesaat = Convert.ToDouble(b3saat);
+                tmptime = tmptime.AddHours(doublesaat);
+                var result1 = _collection.AsQueryable<Araba>().
+                Where(c => (c.ArabaID == arabaId) && (c.Date > Tarih && c.Date < tmptime)).
+                Select(c => new { c.Lat, c.Long, c.ArabaID });
+                return Json(result1, JsonRequestBehavior.AllowGet);
+            }
+
+
+
+
+
+
+            //return Json(result, JsonRequestBehavior.AllowGet);
+        }
+
+
+
+
+    }
+}
+
+// proje1b/Controllers/HomeController
+
+using proje1b.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using MySql.Data.MySqlClient;
+using System.Web.Security;
+
+namespace proje1b.Controllers
+{
+
+    public class HomeController : Controller
+    {
+        private static string kullanicii;
+
+        private static int counter = 0;
+
+        [AllowAnonymous]
+        [HttpPost]
+        public ActionResult Login(Yonetim yonetim)
+        {
+            kullanicii = yonetim.UserName;
+            string connStr = "server=localhost;user=root;database=taksi;port=3306;password=password";
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                conn.Open();
+
+                string sql = $"SELECT * FROM Kullanicilar WHERE kullaniciAdi = '{yonetim.UserName}' AND sifre = '{yonetim.Password}';";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+
+                if (rdr.Read())
+                {
+                    rdr.Close();
+                    sql = $"INSERT INTO girisLog(kullaniciAdi) VALUES ('{yonetim.UserName}');";
+                    cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+                    // haritaya yolla
+                    FormsAuthentication.SetAuthCookie(yonetim.UserName, false);
+                    ViewBag.Kullanici = yonetim.UserName;
+                    return RedirectToAction("Index", "Harita", new { kullaniciAdi = yonetim.UserName });
+                    // kullanici adi yollanacak
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            counter++;
+            ViewBag.Message = string.Format("Kullanıcı Adı veya parola yanlış. Hatalı Deneme: " + counter);
+
+            if (counter == 3)
+            {
+                return View("NotFound");
+            }
+            return View();
+        }
+        [AllowAnonymous]
+        [HttpGet]
+        public ActionResult Login()
+        {
+            return View();
+        }
+        [AllowAnonymous]
+        public ViewResult NotFound()
+        {
+            Response.StatusCode = 404;  //you may want to set this to 200
+            return View("NotFound");
+        }
+        [Authorize]
+        public ActionResult Cikis(Yonetim yonetim)
+        {
+            FormsAuthentication.SignOut();
+            string connStr = "server=localhost;user=root;database=taksi;port=3306;password=password";
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                conn.Open();
+                string sql = $"INSERT INTO cikisLog(kullaniciAdi) VALUES ('{kullanicii}');";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                conn.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return RedirectToAction("Login");
+        }
+    }
+}
+
+
+// proje1b/Models/Araba.cs
+
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace proje1b.Models
+{
+    [BsonIgnoreExtraElements]
+    public class Araba
+    {
+        [BsonId]
+        public ObjectId Id { get; set; }
+        [BsonElement("date")]
+        public DateTime Date { get; set; }
+        [BsonElement("lat")]
+        public string Lat { get; set; }
+        [BsonElement("long")]
+        public string Long { get; set; }
+        [BsonElement("aracid")]
+        public string ArabaID { get; set; }
+    }
+}
+
+// proje1b/Models/Sorgu.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+
+namespace proje1b.Models
+{
+    public class Sorgu
+    {
+        public DateTime BaslangicTarihi { get; set; }
+        public DateTime BitisTarihi { get; set; }
+        public string BaslangicSaat { get; set; }
+        public string BitisSaat { get; set; }
+        public string BaslangicDakika { get; set; }
+        public int BitisDakika { get; set; }
+
+    }
+}
+
+// proje1b.Models/Yonetim.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace proje1b.Models
+{
+    public class Yonetim
+    {
+        public int UserID { get; set; }
+        public string UserName { get; set; }
+        public string Password { get; set; }
+        public string Role { get; set; }
+
+    
+    }
+}
+
+// proje1b/Views/Harita/HaritaIndex.cshtml
+
+
+@{
+    ViewBag.Title = "HaritaIndex";
+}
+
+<h2>HaritaIndex</h2>
+
+
+
+// proje1b/Views/Harita/Index.cshtml
+
+@model proje1b.Models.Sorgu
+
+@{
+    ViewBag.Title = "Index";
+}
+
+
+
+<style>
+    #map {
+        height: 500px;
+    }
+</style>
+
+<div id="map">
+
+</div>
+<script src="~/Scripts/jquery-3.4.1.min.js"></script>
+<div class="hadee hade">
+    @using (Html.BeginForm("Index", "Harita", FormMethod.Post))
+    {
+
+        @Html.TextBoxFor(model => model.BaslangicTarihi, new
+        {
+            //@class = "form-control",
+            @class = "col-sm",
+            type = "date"
+        })
+        @Html.TextBox("baslangicSaat", "", new { placeholder = "Başlangic Saat", @class = "col-sm" });
+        @Html.TextBox("bitisSaat", "", new { placeholder = "Bitiş Saat", @class = "col-sm" });
+        @Html.TextBox("secilenarabaID", "", new { placeholder = "Araba ID", @class = "col-sm" })
+        <input type="submit" value="Ara" class="col-sm" />
+    }
+</div>
+<script>
+
+    //var myJsvariable = $('@ViewBag.kullaniciAdi').val();
+
+
+    var map;
+    var markers = [];
+    var latarr = new Array();
+    var longarr = new Array();
+    var aracidleri = new Array();
+    var temp = new Array();
+    var type1 = new Array();
+    var type2 = new Array();
+    let url = "http://maps.google.com/mapfiles/ms/icons/";
+    function initMap() {
+
+
+        $(document).ready(function () {
+            var myJsvariable = '@ViewBag.kullaniciAdi';
+            console.log("hadeee2 == " + myJsvariable);
+            $.ajax({
+                url: "/Harita/HaritaIndex",
+                type: "POST",
+                dataType: "json",
+                data: myJsvariable,
+                success: function (mydata) {
+                    let lastid = 0;
+                    let indxChange = 0;
+                    const obj = JSON.stringify(mydata);
+                    const veri = JSON.parse(obj);
+                    for (let indx = 0; indx < veri.length; indx++) {
+                        if (lastid != veri[indx].ArabaID) {
+                            lastid = veri[indx].ArabaID;
+                            indxChange = indx;
+                        }
+                        aracidleri.push(veri[indx].ArabaID);
+                        latarr.push(veri[indx].Lat);
+                        longarr.push(veri[indx].Long);
+                    }
+                    for (let indx = 0; indx < latarr.length; indx++) {
+                        //console.log(latarr[indx] + " " + longarr[indx]);
+                    }
+
+                    url += "blue" + "-dot.png";
+                    let mapOptions = {
+                        center: new google.maps.LatLng('60.128162', '18.643501'),
+                        zoom: 3,
+                        mapTypeId: 'roadmap'
+                    }
+
+                    map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+                    console.log(latarr.length + "hadee");
+                    console.log("indxchange ==" + indxChange);
+                    for (let indx = 0; indx <= latarr.length; indx++)
+                    {
+                        if (indx >= indxChange && indxChange != 0) {
+                            var marker = new google.maps.Marker({
+                                position: { lat: Number(latarr[indx]), lng: Number(longarr[indx]) },
+                                map: map,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                                }
+                            });
+
+                        }
+                        else {
+                            var marker = new google.maps.Marker({
+                                position: { lat: Number(latarr[indx]), lng: Number(longarr[indx]) },
+                                map: map
+                            });
+                        }
+
+
+                        markers.push(marker);
+
+
+                    }
+
+                }
+            });
+
+
+        });
+
+
+
+
+
+        //$.getJSON("/Harita/HaritaIndex/", function (data) {
+        //    const obj = JSON.stringify(data);
+        //    const veri = JSON.parse(obj);
+        //    for (let indx = 0; indx < veri.length; indx++) {
+
+        //        latarr.push(veri[indx].Lat);
+        //        longarr.push(veri[indx].Long);
+        //    }
+        //    for (let indx = 0; indx < latarr.length; indx++) {
+        //        //console.log(latarr[indx] + " " + longarr[indx]);
+        //    }
+
+        //    let mapOptions = {
+        //        center: new google.maps.LatLng('60.128162', '18.643501'),
+        //        zoom: 3,
+        //        mapTypeId: 'roadmap'
+        //    }
+
+        //    map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+        //    console.log(latarr.length + "hadee");
+
+        //    for (let indx = 0; indx < latarr.length; indx++) {
+        //        var marker = new google.maps.Marker({
+        //            position: { lat: Number(latarr[indx]), lng: Number(longarr[indx]) },
+        //            map: map
+        //        });
+
+        //        markers.push(marker);
+
+        //    }
+
+        //});
+
+
+    }
+
+
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw_h-tfJgq0Vw7EPcsQjJvbaNKiLYceAQ&callback=initMap"></script>
+
+
+// proje1b/Views/Home/Login.cshtml
+
+@model proje1b.Models.Yonetim
+@{
+    ViewBag.Title = "Login";
+}
+
+<h2>Login</h2>
+
+@using (Html.BeginForm("Login", "Home", FormMethod.Post))
+{
+
+    <div class="form-group">
+        @Html.TextBoxFor(m => m.UserName, new { @class = "form-control" })
+    </div>
+    <div class="form-group">
+        @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Giriş Yap" id="Submit" class="btn btn-default" />
+        @ViewBag.Message
+    </div>
+
+}
+
+
+// proje1b/Views/Shared/_Layout.cshtml
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - My ASP.NET Application</title>
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+</head>
+<body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div class="navbar-collapse collapse">
+                @Html.Partial("_LoginPartial")
+            </div>
+
+        </div>
+    </div>
+    <div class="container body-content">
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>&copy; @DateTime.Now.Year - My ASP.NET Application</p>
+        </footer>
+    </div>
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    @RenderSection("scripts", required: false)
+</body>
+</html>
+
+
+// proje1b/Views/Shared/_LoginPartial.cshtml
+
+
+
+@if (Request.IsAuthenticated)
+{
+    using (Html.BeginForm("Cikis", "Home", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+    {
+        @Html.AntiForgeryToken()
+
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="javascript:document.getElementById('logoutForm').submit()">Cıkış yap</a></li>
+        </ul>
+    }
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "Login", "Home", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>
+}
+
+
+//  proje1b/Views/Shared/Error.cshtml
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Error</title>
+</head>
+<body>
+    <hgroup>
+        <h1>Error.</h1>
+        <h2>An error occurred while processing your request.</h2>
+    </hgroup>
+</body>
+</html>
+
+
+// MessageBrooker/Program.cs
+
+using System;
+using LumenWorks.Framework.IO.Csv;
+using System.Threading;
+using NetMQ;
+using NetMQ.Sockets;
+using System.Data;
+
+namespace MessageBrooker
+{
+    internal class Program
+    {
+
+        static void Main(string[] args)
+        {
+
+            /*
+            var csvTable = new DataTable();
+            using (var csvReader = new CsvReader(new StreamReader(System.IO.File.OpenRead("allCars.csv")), true))
+            {
+                csvTable.Load(csvReader);
+                for (int i = 0; i < csvTable.Rows.Count; i++)
+                {
+                    using (var client = new RequestSocket())
+                    {
+                        client.Connect("tcp://127.0.0.1:5556");
+                        string yollanacak = csvTable.Rows[i][0].ToString() + " " + csvTable.Rows[i][1].ToString() + " " + csvTable.Rows[i][2].ToString() + " " + csvTable.Rows[i][3].ToString();
+                        //var msg = csvTable.Rows[i].ToString;
+                        client.SendFrame(yollanacak);
+                        var msg2 = client.ReceiveFrameString();
+                        //Console.WriteLine("From Server: " + msg2);
+                    }
+                }
+            }
+            Console.WriteLine("Tüm yüklemeler tamamlandı! ");
+            */
+            var csvTable = new DataTable();
+            using (var csvReader = new CsvReader(new StreamReader(System.IO.File.OpenRead("allCars.csv")), true))
+            {
+                csvTable.Load(csvReader);
+                while (true)
+                {
+                    DateTime now = DateTime.Now;
+                    for (int i = 0; i < csvTable.Rows.Count; i++)
+                    {
+                        //csv güncelleyince düzelt
+                        int yil = Int32.Parse(csvTable.Rows[i][0].ToString().Substring(0, 4));
+                        int ay = (Int32.Parse(csvTable.Rows[0][0].ToString().Substring(5, 2)));
+                        int gun = Int32.Parse(csvTable.Rows[i][0].ToString().Substring(8, 2));
+                        int saat = Int32.Parse(csvTable.Rows[i][0].ToString().Substring(11, 2));
+                        int dakika = Int32.Parse(csvTable.Rows[i][0].ToString().Substring(14, 2));
+                        int saatlik = now.Hour + 3;
+                        int gunluk = now.Day;
+                        int aylik = now.Month;
+                        switch (saatlik)
+                        {
+                            case 24:
+                                saat = 0;
+                                gunluk++;
+                                break;
+                            case 25:
+                                saat = 1;
+                                gunluk++;
+                                break;
+                            case 26:
+                                saat = 2;
+                                gunluk++;
+                                break;
+                            case 27:
+                                saat = 3;
+                                gunluk++;
+                                break;
+                        }
+                        if (gunluk > 31)
+                        {
+                            aylik++;
+                        }
+                        if (yil == now.Year && ay == aylik && gun == gunluk && saat == saatlik && dakika == now.Minute)
+                        {
+                            using (var client = new RequestSocket())
+                            {
+                                client.Connect("tcp://127.0.0.1:5556");
+                                string yollanacak = csvTable.Rows[i][0].ToString() + " " + csvTable.Rows[i][1].ToString() + " " + csvTable.Rows[i][2].ToString() + " " + csvTable.Rows[i][3].ToString();
+                                client.SendFrame(yollanacak);
+                                var msg2 = client.ReceiveFrameString();
+                                Console.WriteLine("From Server: " + msg2);
+                            }
+                        }
+                    }
+                    Thread.Sleep(60000);
+                }
+
+
+            }
+
+        }
+
+    }
+
+}
+
+
+// proje1b/Web.config
+
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  For more information on how to configure your ASP.NET application, please visit
+  https://go.microsoft.com/fwlink/?LinkId=301880
+  -->
+<configuration>
+	<appSettings>
+		<add key="webpages:Version" value="3.0.0.0" />
+		<add key="webpages:Enabled" value="false" />
+		<add key="ClientValidationEnabled" value="true" />
+		<add key="UnobtrusiveJavaScriptEnabled" value="true" />
+	</appSettings>
+	<system.web>
+		<compilation debug="true" targetFramework="4.7.2" />
+		<httpRuntime targetFramework="4.7.2" />
+		<authentication mode="Forms">
+			<forms loginUrl="Home/Login"></forms>
+		</authentication>
+		<customErrors mode="On" defaultRedirect="~/Error">
+			<error redirect="~/Error/NotFound" statusCode="404" />
+		</customErrors>
+	</system.web>
+	<runtime>
+		<assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+			<dependentAssembly>
+				<assemblyIdentity name="Antlr3.Runtime" publicKeyToken="eb42632606e9261f" />
+				<bindingRedirect oldVersion="0.0.0.0-3.5.0.2" newVersion="3.5.0.2" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="Newtonsoft.Json" publicKeyToken="30ad4fe6b2a6aeed" />
+				<bindingRedirect oldVersion="0.0.0.0-13.0.0.0" newVersion="13.0.0.0" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="System.Web.Optimization" publicKeyToken="31bf3856ad364e35" />
+				<bindingRedirect oldVersion="1.0.0.0-1.1.0.0" newVersion="1.1.0.0" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="WebGrease" publicKeyToken="31bf3856ad364e35" />
+				<bindingRedirect oldVersion="0.0.0.0-1.6.5135.21930" newVersion="1.6.5135.21930" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="System.Web.Helpers" publicKeyToken="31bf3856ad364e35" />
+				<bindingRedirect oldVersion="1.0.0.0-3.0.0.0" newVersion="3.0.0.0" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="System.Web.WebPages" publicKeyToken="31bf3856ad364e35" />
+				<bindingRedirect oldVersion="1.0.0.0-3.0.0.0" newVersion="3.0.0.0" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="System.Web.Mvc" publicKeyToken="31bf3856ad364e35" />
+				<bindingRedirect oldVersion="1.0.0.0-5.2.7.0" newVersion="5.2.7.0" />
+			</dependentAssembly>
+			<dependentAssembly>
+				<assemblyIdentity name="System.Runtime.CompilerServices.Unsafe" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+				<bindingRedirect oldVersion="0.0.0.0-5.0.0.0" newVersion="5.0.0.0" />
+			</dependentAssembly>
+		</assemblyBinding>
+	</runtime>
+	<system.codedom>
+		<compilers>
+			<compiler language="c#;cs;csharp" extension=".cs" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.CSharpCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" warningLevel="4" compilerOptions="/langversion:default /nowarn:1659;1699;1701" />
+			<compiler language="vb;vbs;visualbasic;vbscript" extension=".vb" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.VBCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" warningLevel="4" compilerOptions="/langversion:default /nowarn:41008 /define:_MYTYPE=\&quot;Web\&quot; /optionInfer+" />
+		</compilers>
+	</system.codedom>
+</configuration>
